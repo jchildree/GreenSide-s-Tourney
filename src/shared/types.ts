@@ -79,5 +79,11 @@ export interface OnboardingStatus {
 export const DEFAULT_CONFIG: AppConfig = {
   googleClientId: '',
   googleClientSecret: '',
-  challongeCommunityUrl: '',
+  challongeCommunityUrl: ''
+}
+
+export const DEFAULT_ONBOARDING_STATUS: OnboardingStatus = {
+  googleConnected: false,
+  challongeConnected: false,
+  complete: false,
 }
