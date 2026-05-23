@@ -100,21 +100,14 @@ function WelcomeStep({ onNext }: { onNext: () => void }): JSX.Element {
 /* ── Google step ────────────────────────────────────── */
 
 function GoogleStep({ onNext }: { onNext: () => void }): JSX.Element {
-  const [clientId, setClientId] = useState('')
-  const [clientSecret, setClientSecret] = useState('')
   const [status, setStatus] = useState<'idle' | 'waiting' | 'done' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
   async function handleConnect(): Promise<void> {
-    if (!clientId.trim() || !clientSecret.trim()) {
-      setErrorMsg('Both Client ID and Client Secret are required.')
-      setStatus('error')
-      return
-    }
     setStatus('waiting')
     setErrorMsg('')
     try {
-      await window.api.beginGoogleOAuth(clientId.trim(), clientSecret.trim())
+      await window.api.beginGoogleOAuth()
       setStatus('done')
     } catch (err) {
       setErrorMsg((err as Error).message)
@@ -128,54 +121,20 @@ function GoogleStep({ onNext }: { onNext: () => void }): JSX.Element {
         Connect Google
       </h2>
 
-      <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-        You need a Google Cloud project with the{' '}
-        <strong style={{ color: 'var(--color-text)' }}>Google Forms API</strong> enabled
-        and an OAuth 2.0 client (type: <em>Desktop app</em>).{' '}
-        <a
-          href="https://console.cloud.google.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'var(--color-gold)', textDecoration: 'underline', cursor: 'pointer' }}
-        >
-          Open Google Cloud Console
-        </a>
-        {' '}or{' '}
+      <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+        Grant access to your Google account so the app can read signup responses and update your form.
+        A browser window will open for sign-in — you'll be redirected back automatically.
+        Don't have an account?{' '}
         <a
           href="https://accounts.google.com/signup"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'var(--color-silver)', textDecoration: 'underline', cursor: 'pointer' }}
         >
-          create a Google account first
+          Create one free
         </a>
         .
       </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <div>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem' }}>OAuth Client ID</label>
-          <input
-            className="form-input"
-            type="text"
-            placeholder="123456789-abc...apps.googleusercontent.com"
-            value={clientId}
-            onChange={e => setClientId(e.target.value)}
-            disabled={status === 'waiting' || status === 'done'}
-          />
-        </div>
-        <div>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem' }}>OAuth Client Secret</label>
-          <input
-            className="form-input"
-            type="password"
-            placeholder="GOCSPX-..."
-            value={clientSecret}
-            onChange={e => setClientSecret(e.target.value)}
-            disabled={status === 'waiting' || status === 'done'}
-          />
-        </div>
-      </div>
 
       {status === 'waiting' && (
         <p style={{ color: 'var(--color-gold)', fontSize: '0.85rem', marginBottom: '1rem' }}>
@@ -197,7 +156,7 @@ function GoogleStep({ onNext }: { onNext: () => void }): JSX.Element {
             className="btn-gold"
             style={{ flex: 1 }}
           >
-            {status === 'waiting' ? 'Waiting for browser…' : 'Connect Google Account'}
+            {status === 'waiting' ? 'Waiting for browser…' : 'Sign in with Google'}
           </button>
         ) : (
           <button onClick={onNext} className="btn-gold" style={{ flex: 1 }}>

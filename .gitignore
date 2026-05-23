@@ -12,3 +12,6 @@ dist/
 
 # tourney state — local only
 data/*.json
+
+# bundled OAuth credentials — never commit
+src/main/auth/oauth-config.ts

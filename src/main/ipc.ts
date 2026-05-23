@@ -5,6 +5,7 @@ import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { verifyChallongeKey } from './auth/challonge-verify'
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from './auth/oauth-config'
 import type { Tourney, DraftPick, Draft, Team, OnboardingStatus, AppConfig } from '../shared/types'
 
 export function registerIpcHandlers(): void {
@@ -67,16 +68,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle(
-    'begin-google-oauth',
-    async (_e, clientId: string, clientSecret: string): Promise<void> => {
-      const cfg: AppConfig = { ...readConfig(), googleClientId: clientId }
-      saveConfig(cfg)
-      saveCredential('google-client-secret', clientSecret)
-      const { refreshToken } = await beginGoogleOAuth(clientId, clientSecret)
-      saveCredential('google', refreshToken)
-    }
-  )
+  ipcMain.handle('begin-google-oauth', async (): Promise<void> => {
+    const { refreshToken } = await beginGoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+    saveCredential('google', refreshToken)
+  })
 
   ipcMain.handle(
     'verify-challonge-key',
@@ -84,7 +79,7 @@ export function registerIpcHandlers(): void {
       const valid = await verifyChallongeKey(apiKey)
       if (valid) {
         saveCredential('challonge', apiKey)
-        const cfg: AppConfig = { ...readConfig(), challongeCommunityUrl: communityUrl }
+        const cfg: AppConfig = { challongeCommunityUrl: communityUrl }
         saveConfig(cfg)
       }
       return valid

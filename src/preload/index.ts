@@ -24,8 +24,8 @@ const api = {
   checkOnboarding: (): Promise<import('../shared/types').OnboardingStatus> =>
     ipcRenderer.invoke('check-onboarding'),
 
-  beginGoogleOAuth: (clientId: string, clientSecret: string): Promise<void> =>
-    ipcRenderer.invoke('begin-google-oauth', clientId, clientSecret),
+  beginGoogleOAuth: (): Promise<void> =>
+    ipcRenderer.invoke('begin-google-oauth'),
 
   verifyChallongeKey: (apiKey: string, communityUrl: string): Promise<boolean> =>
     ipcRenderer.invoke('verify-challonge-key', apiKey, communityUrl),

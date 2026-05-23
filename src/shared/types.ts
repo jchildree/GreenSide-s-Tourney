@@ -1,5 +1,5 @@
 export type DraftStyle = 'random' | 'snake' | 'manual'
-export type CredentialService = 'google' | 'challonge' | 'google-client-secret'
+export type CredentialService = 'google' | 'challonge'
 
 export interface Tourney {
   name: string
@@ -65,7 +65,6 @@ export const DEFAULT_SYNC: Sync = {
 }
 
 export interface AppConfig {
-  googleClientId: string
   challongeCommunityUrl: string
 }
 
@@ -76,7 +75,6 @@ export interface OnboardingStatus {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  googleClientId: '',
   challongeCommunityUrl: ''
 }
 
