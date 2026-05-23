@@ -18,13 +18,40 @@ export function Draft(): JSX.Element {
   const unassigned = signups.filter(p => !draft.pickOrder.includes(p.name))
 
   return (
-    <div>
-      <h2>Draft Board</h2>
-      <Timer initialSeconds={60} />
-      <PickWheel players={unassigned.map(p => p.name)} onPick={name => {
-        setDraft(d => ({ ...d, pickOrder: [...d.pickOrder, name] }))
-      }} />
-      <TeamRoster teams={draft.teams} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Header row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(200, 169, 110, 0.3)',
+        paddingBottom: '0.5rem',
+      }}>
+        <h2 style={{
+          color: 'var(--color-gold)',
+          fontSize: '1.125rem',
+          fontWeight: 700,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          margin: 0,
+        }}>
+          Draft Board
+        </h2>
+        <Timer initialSeconds={60} />
+      </div>
+
+      {/* Wheel + Roster */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
+        <div>
+          <PickWheel
+            players={unassigned.map(p => p.name)}
+            onPick={name => setDraft(d => ({ ...d, pickOrder: [...d.pickOrder, name] }))}
+          />
+        </div>
+        <div>
+          <TeamRoster teams={draft.teams} />
+        </div>
+      </div>
     </div>
   )
 }

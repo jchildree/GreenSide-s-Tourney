@@ -8,9 +8,10 @@ interface PickWheelProps {
 export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
   const [spinning, setSpinning] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
+  const empty = players.length === 0
 
   function spin(): void {
-    if (players.length === 0 || spinning) return
+    if (empty || spinning) return
     setSpinning(true)
     setPicked(null)
 
@@ -31,14 +32,35 @@ export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
     }, 80)
   }
 
+  const displayColor = spinning
+    ? 'var(--color-gold)'
+    : picked
+      ? 'var(--color-text)'
+      : 'var(--color-muted)'
+
   return (
-    <div style={{ margin: '1rem 0' }}>
-      <div style={{ fontSize: '1.5rem', minHeight: '2rem', fontWeight: 'bold' }}>
-        {picked ?? (players.length === 0 ? 'No players left' : '—')}
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
+      <div style={{
+        fontSize: '1.75rem',
+        fontWeight: 700,
+        minHeight: '2.5rem',
+        letterSpacing: '0.05em',
+        color: displayColor,
+        transition: 'color 75ms ease',
+        textAlign: 'center',
+      }}>
+        {picked ?? (empty ? 'No players left' : '—')}
       </div>
-      <button onClick={spin} disabled={spinning || players.length === 0}>
+
+      <button onClick={spin} disabled={spinning || empty} className="btn-gold" style={{ padding: '0.5rem 2rem', letterSpacing: '0.15em' }}>
         {spinning ? 'Spinning…' : 'Spin'}
       </button>
+
+      {!empty && (
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.75rem' }}>
+          {players.length} player{players.length !== 1 ? 's' : ''} remaining
+        </p>
+      )}
     </div>
   )
 }

@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+/* Tell Tailwind v4 to scan renderer source files for utility classes */
+@source "../**/*.tsx";
+@source "../**/*.ts";
+@source "../index.html";
+
+@theme {
+  --color-bg:      #0d0d14;
+  --color-surface: #141428;
+  --color-card:    #1c1c3a;
+  --color-border:  #2a2a5a;
+  --color-gold:    #c8a96e;
+  --color-silver:  #8fa0b4;
+  --color-text:    #eaeaea;
+  --color-muted:   #8892a4;
+  --color-danger:  #e94560;
+  --color-success: #2ecc71;
+}
+
+/* Explicit :root vars — @theme alone doesn't emit them through electron-vite */
+:root {
+  --color-bg:      #0d0d14;
+  --color-surface: #141428;
+  --color-card:    #1c1c3a;
+  --color-border:  #2a2a5a;
+  --color-gold:    #c8a96e;
+  --color-silver:  #8fa0b4;
+  --color-text:    #eaeaea;
+  --color-muted:   #8892a4;
+  --color-danger:  #e94560;
+  --color-success: #2ecc71;
+}
+
+/* Base resets & global defaults */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  input, select, button, textarea { font-family: inherit; }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+  }
+
+  select option {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+  }
+}
+
+/* Component classes — plain CSS, no @apply */
+@layer components {
+  /* ── Shared button base ─────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.3rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    line-height: 1;
+    transition: box-shadow 150ms ease, filter 150ms ease, border-color 150ms ease;
+  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Primary — metallic blue ────────────────────────── */
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.3rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    line-height: 1;
+    color: #020817;
+    background: linear-gradient(160deg, #93c5fd 0%, #3b82f6 45%, #1d4ed8 100%);
+    border: 1px solid #2563eb;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 0 18px rgba(59, 130, 246, 0.45),
+      0 2px 8px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+    transition: box-shadow 150ms ease, filter 150ms ease;
+  }
+  .btn-gold:hover:not(:disabled) {
+    filter: brightness(1.1);
+    box-shadow:
+      0 0 28px rgba(59, 130, 246, 0.65),
+      0 4px 14px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+  .btn-gold:active:not(:disabled) {
+    filter: brightness(0.88);
+    box-shadow:
+      0 0 10px rgba(59, 130, 246, 0.3),
+      0 1px 4px rgba(0, 0, 0, 0.5),
+      inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  .btn-gold:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Ghost (secondary) — metallic dark ──────────────── */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.3rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    line-height: 1;
+    color: var(--color-silver);
+    background: linear-gradient(160deg, #252545 0%, #1a1a38 100%);
+    border: 1px solid var(--color-border);
+    box-shadow:
+      0 0 8px rgba(143, 160, 180, 0.15),
+      0 2px 6px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: box-shadow 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--color-text);
+    border-color: var(--color-silver);
+    box-shadow:
+      0 0 16px rgba(143, 160, 180, 0.35),
+      0 3px 10px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  .btn-ghost:active:not(:disabled) {
+    box-shadow:
+      0 0 6px rgba(143, 160, 180, 0.15),
+      inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  }
+  .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Card ───────────────────────────────────────────── */
+  .card {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  /* ── View heading ───────────────────────────────────── */
+  .view-title {
+    color: var(--color-gold);
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* ── Form input ─────────────────────────────────────── */
+  .form-input {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    color: var(--color-text);
+    transition: border-color 150ms ease;
+    outline: none;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--color-gold); }
+  .form-input::placeholder { color: var(--color-muted); }
+
+  /* ── Form label ─────────────────────────────────────── */
+  .form-label {
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── Status text ────────────────────────────────────── */
+  .status-ok  { color: var(--color-success); font-size: 0.875rem; font-weight: 500; }
+  .status-err { color: var(--color-danger);  font-size: 0.875rem; font-weight: 500; }
+}

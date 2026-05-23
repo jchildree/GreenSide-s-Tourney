@@ -13,6 +13,7 @@ function format(seconds: number): string {
 export function Timer({ initialSeconds }: TimerProps): JSX.Element {
   const [remaining, setRemaining] = useState(initialSeconds)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const isExpired = remaining === 0
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -28,11 +29,21 @@ export function Timer({ initialSeconds }: TimerProps): JSX.Element {
   }
 
   return (
-    <div>
-      <span style={{ fontSize: '2rem', fontVariantNumeric: 'tabular-nums' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <span style={{
+        fontFamily: 'monospace',
+        fontSize: '3rem',
+        fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
+        letterSpacing: '-0.02em',
+        color: isExpired ? 'var(--color-danger)' : 'var(--color-gold)',
+        transition: 'color 300ms ease',
+      }}>
         {format(remaining)}
       </span>
-      <button onClick={reset} style={{ marginLeft: '1rem' }}>Reset</button>
+      <button onClick={reset} className="btn-ghost" style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}>
+        Reset
+      </button>
     </div>
   )
 }
