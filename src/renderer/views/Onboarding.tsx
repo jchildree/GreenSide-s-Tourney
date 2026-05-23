@@ -132,19 +132,23 @@ function GoogleStep({ onNext }: { onNext: () => void }): JSX.Element {
         You need a Google Cloud project with the{' '}
         <strong style={{ color: 'var(--color-text)' }}>Google Forms API</strong> enabled
         and an OAuth 2.0 client (type: <em>Desktop app</em>).{' '}
-        <span
-          style={{ color: 'var(--color-gold)', cursor: 'pointer', textDecoration: 'underline' }}
-          onClick={() => window.open('https://console.cloud.google.com/', '_blank')}
+        <a
+          href="https://console.cloud.google.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-gold)', textDecoration: 'underline', cursor: 'pointer' }}
         >
           Open Google Cloud Console
-        </span>
+        </a>
         {' '}or{' '}
-        <span
-          style={{ color: 'var(--color-silver)', cursor: 'pointer', textDecoration: 'underline' }}
-          onClick={() => window.open('https://accounts.google.com/signup', '_blank')}
+        <a
+          href="https://accounts.google.com/signup"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-silver)', textDecoration: 'underline', cursor: 'pointer' }}
         >
           create a Google account first
-        </span>
+        </a>
         .
       </p>
 
@@ -243,26 +247,32 @@ function ChallongeStep({ onNext }: { onNext: () => void }): JSX.Element {
 
       <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
         Find your API key at{' '}
-        <span
-          style={{ color: 'var(--color-gold)', cursor: 'pointer', textDecoration: 'underline' }}
-          onClick={() => window.open('https://challonge.com/settings#api-section', '_blank')}
+        <a
+          href="https://challonge.com/settings#api-section"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-gold)', textDecoration: 'underline', cursor: 'pointer' }}
         >
           challonge.com/settings → Developer API
-        </span>
+        </a>
         . Don't have an account?{' '}
-        <span
-          style={{ color: 'var(--color-silver)', cursor: 'pointer', textDecoration: 'underline' }}
-          onClick={() => window.open('https://challonge.com/register', '_blank')}
+        <a
+          href="https://challonge.com/register"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-silver)', textDecoration: 'underline', cursor: 'pointer' }}
         >
           Register free
-        </span>
+        </a>
         . Need a community?{' '}
-        <span
-          style={{ color: 'var(--color-silver)', cursor: 'pointer', textDecoration: 'underline' }}
-          onClick={() => window.open('https://challonge.com/communities/new', '_blank')}
+        <a
+          href="https://challonge.com/communities/new"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-silver)', textDecoration: 'underline', cursor: 'pointer' }}
         >
           Create one
-        </span>
+        </a>
         .
       </p>
 
