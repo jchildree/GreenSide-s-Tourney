@@ -1,0 +1,16 @@
+appId: com.tourney.app
+productName: Tourney App
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - '!**/*.map'
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

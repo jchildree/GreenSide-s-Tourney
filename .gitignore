@@ -1,0 +1,14 @@
+# Keep Obsidian vault and generated docs local
+docs/
+
+# Brainstorming session mockups
+.superpowers/
+
+# Node / build artifacts
+node_modules/
+out/
+dist/
+*.tsbuildinfo
+
+# tourney state — local only
+data/*.json

@@ -1,0 +1,26 @@
+﻿{
+    "hooks":  {
+                  "SessionStart":  [
+                                       {
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-activate.js\"",
+                                                             "timeout":  5000
+                                                         }
+                                                     ]
+                                       }
+                                   ],
+                  "UserPromptSubmit":  [
+                                           {
+                                               "hooks":  [
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-mode-tracker.js\"",
+                                                                 "timeout":  5000
+                                                             }
+                                                         ]
+                                           }
+                                       ]
+              }
+}
