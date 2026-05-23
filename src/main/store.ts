@@ -1,8 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
-import type { Tourney, Signups, Draft, Sync } from '../shared/types'
-import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC } from '../shared/types'
+import type { Tourney, Signups, Draft, Sync, AppConfig } from '../shared/types'
+import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC, DEFAULT_CONFIG } from '../shared/types'
 
 function dataDir(): string {
   return path.join(app.getPath('userData'), 'data')
@@ -43,3 +43,6 @@ export function saveDraft(d: Draft): void { writeJson('draft.json', d) }
 
 export function readSync(): Sync { return readJson('sync.json', DEFAULT_SYNC) }
 export function saveSync(s: Sync): void { writeJson('sync.json', s) }
+
+export function readConfig(): AppConfig { return readJson('config.json', DEFAULT_CONFIG) }
+export function saveConfig(c: AppConfig): void { writeJson('config.json', c) }
