@@ -19,7 +19,16 @@ const api = {
   getCredential: (service: CredentialService): Promise<string | null> =>
     ipcRenderer.invoke('get-credential', service),
   saveCredential: (service: CredentialService, value: string): Promise<void> =>
-    ipcRenderer.invoke('save-credential', service, value)
+    ipcRenderer.invoke('save-credential', service, value),
+
+  checkOnboarding: (): Promise<import('../shared/types').OnboardingStatus> =>
+    ipcRenderer.invoke('check-onboarding'),
+
+  beginGoogleOAuth: (clientId: string, clientSecret: string): Promise<void> =>
+    ipcRenderer.invoke('begin-google-oauth', clientId, clientSecret),
+
+  verifyChallongeKey: (apiKey: string, communityUrl: string): Promise<boolean> =>
+    ipcRenderer.invoke('verify-challonge-key', apiKey, communityUrl),
 }
 
 contextBridge.exposeInMainWorld('api', api)
