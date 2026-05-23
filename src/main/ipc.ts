@@ -70,8 +70,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(
     'begin-google-oauth',
     async (_e, clientId: string, clientSecret: string): Promise<void> => {
-      const cfg: AppConfig = { ...readConfig(), googleClientId: clientId, googleClientSecret: clientSecret }
+      const cfg: AppConfig = { ...readConfig(), googleClientId: clientId }
       saveConfig(cfg)
+      saveCredential('google-client-secret', clientSecret)
       const { refreshToken } = await beginGoogleOAuth(clientId, clientSecret)
       saveCredential('google', refreshToken)
     }

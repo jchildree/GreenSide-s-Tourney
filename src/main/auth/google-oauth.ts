@@ -142,7 +142,7 @@ export async function beginGoogleOAuth(
   clientSecret: string
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const { verifier, challenge } = generatePKCE()
-  const state = verifier.slice(0, 16)
+  const state = randomBytes(16).toString('base64url')
   const { port, waitForCode, shutdown } = await startCallbackServer()
   const redirectUri = `http://127.0.0.1:${port}/callback`
 
