@@ -1,9 +1,11 @@
 import { ipcMain } from 'electron'
-import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync } from './store'
+import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync, readConfig, saveConfig } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
-import type { Tourney, DraftPick, Draft, Team } from '../shared/types'
+import { beginGoogleOAuth } from './auth/google-oauth'
+import { verifyChallongeKey } from './auth/challonge-verify'
+import type { Tourney, DraftPick, Draft, Team, OnboardingStatus, AppConfig } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
@@ -54,4 +56,37 @@ export function registerIpcHandlers(): void {
     if (!sync.googleFormId) throw new Error('Google Form not configured')
     return fetchSignups({ oauthToken, formId: sync.googleFormId })
   })
+
+  ipcMain.handle('check-onboarding', (): OnboardingStatus => {
+    const googleConnected = getCredential('google') !== null
+    const challongeConnected = getCredential('challonge') !== null
+    return {
+      googleConnected,
+      challongeConnected,
+      complete: googleConnected && challongeConnected,
+    }
+  })
+
+  ipcMain.handle(
+    'begin-google-oauth',
+    async (_e, clientId: string, clientSecret: string): Promise<void> => {
+      const cfg: AppConfig = { ...readConfig(), googleClientId: clientId, googleClientSecret: clientSecret }
+      saveConfig(cfg)
+      const { refreshToken } = await beginGoogleOAuth(clientId, clientSecret)
+      saveCredential('google', refreshToken)
+    }
+  )
+
+  ipcMain.handle(
+    'verify-challonge-key',
+    async (_e, apiKey: string, communityUrl: string): Promise<boolean> => {
+      const valid = await verifyChallongeKey(apiKey)
+      if (valid) {
+        saveCredential('challonge', apiKey)
+        const cfg: AppConfig = { ...readConfig(), challongeCommunityUrl: communityUrl }
+        saveConfig(cfg)
+      }
+      return valid
+    }
+  )
 }
