@@ -63,3 +63,21 @@ export const DEFAULT_SYNC: Sync = {
   googleFormId: null,
   googleFormLastUpdated: null
 }
+
+export interface AppConfig {
+  googleClientId: string
+  googleClientSecret: string
+  challongeCommunityUrl: string
+}
+
+export interface OnboardingStatus {
+  googleConnected: boolean
+  challongeConnected: boolean
+  complete: boolean
+}
+
+export const DEFAULT_CONFIG: AppConfig = {
+  googleClientId: '',
+  googleClientSecret: '',
+  challongeCommunityUrl: '',
+}
