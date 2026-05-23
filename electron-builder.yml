@@ -14,3 +14,7 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+protocols:
+  - name: Tourney App
+    schemes:
+      - tourney
