@@ -20,6 +20,7 @@ function generatePKCE(): { verifier: string; challenge: string } {
 function startCallbackServer(): Promise<{
   port: number
   waitForCode: () => Promise<string>
+  shutdown: () => void
 }> {
   return new Promise((resolve, reject) => {
     const server = createServer()
@@ -31,32 +32,59 @@ function startCallbackServer(): Promise<{
       }
       const port = addr.port
 
+      const shutdown = (): void => {
+        server.close()
+        ;(server as any).closeAllConnections?.()
+      }
+
       const waitForCode = (): Promise<string> =>
         new Promise<string>((codeResolve, codeReject) => {
-          const timer = setTimeout(() => {
+          let settled = false
+
+          const settle = (fn: () => void): void => {
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
             server.close()
-            codeReject(new Error('OAuth timed out — no redirect received within 5 minutes'))
+            ;(server as any).closeAllConnections?.()
+            fn()
+          }
+
+          const timer = setTimeout(() => {
+            settle(() => codeReject(new Error('OAuth timed out — no redirect received within 5 minutes')))
           }, OAUTH_TIMEOUT_MS)
 
           server.on('request', (req, res) => {
-            clearTimeout(timer)
             const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`)
+            if (!url.pathname.startsWith('/callback')) {
+              res.writeHead(404).end()
+              return
+            }
             const code = url.searchParams.get('code')
             const error = url.searchParams.get('error')
+            const isError = error !== null
+
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end(
               '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem">' +
-              '<h2>Connected! You can close this tab and return to Tourney App.</h2>' +
+              (isError
+                ? '<h2>Authorization failed. Please close this tab and try again in Tourney App.</h2>'
+                : '<h2>Connected! You can close this tab and return to Tourney App.</h2>') +
               '</body></html>'
             )
-            server.close()
-            if (error) codeReject(new Error(`Google denied access: ${error}`))
-            else if (!code) codeReject(new Error('OAuth redirect missing code parameter'))
-            else codeResolve(code)
+
+            if (isError) {
+              const safeError = (error ?? '').replace(/[^\w_-]/g, '').slice(0, 64)
+              settle(() => codeReject(new Error(`Google denied access: ${safeError}`)))
+            } else if (!code) {
+              settle(() => codeReject(new Error('OAuth redirect missing code parameter')))
+            } else {
+              settle(() => codeResolve(code))
+            }
           })
         })
 
-      resolve({ port, waitForCode })
+      resolve({ port, waitForCode, shutdown })
     })
 
     server.on('error', reject)
@@ -108,7 +136,7 @@ export async function beginGoogleOAuth(
   clientSecret: string
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const { verifier, challenge } = generatePKCE()
-  const { port, waitForCode } = await startCallbackServer()
+  const { port, waitForCode, shutdown } = await startCallbackServer()
   const redirectUri = `http://127.0.0.1:${port}/callback`
 
   const authUrl = new URL(AUTH_BASE)
@@ -120,11 +148,22 @@ export async function beginGoogleOAuth(
   authUrl.searchParams.set('code_challenge_method', 'S256')
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
+  authUrl.searchParams.set('state', verifier.slice(0, 16))  // CSRF nonce (I2)
 
-  await shell.openExternal(authUrl.toString())
+  try {
+    await shell.openExternal(authUrl.toString())
+  } catch (err) {
+    shutdown()
+    throw new Error(`Could not open browser for Google sign-in: ${(err as Error).message}`)
+  }
 
-  const code = await waitForCode()
-  return exchangeCode({ code, verifier, clientId, clientSecret, redirectUri })
+  try {
+    const code = await waitForCode()
+    return exchangeCode({ code, verifier, clientId, clientSecret, redirectUri })
+  } catch (err) {
+    shutdown()
+    throw err
+  }
 }
 
 export { generatePKCE }
