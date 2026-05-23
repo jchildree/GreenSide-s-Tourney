@@ -19,7 +19,7 @@ function generatePKCE(): { verifier: string; challenge: string } {
 
 function startCallbackServer(): Promise<{
   port: number
-  waitForCode: () => Promise<string>
+  waitForCode: (expectedState: string) => Promise<string>
   shutdown: () => void
 }> {
   return new Promise((resolve, reject) => {
@@ -37,7 +37,7 @@ function startCallbackServer(): Promise<{
         ;(server as any).closeAllConnections?.()
       }
 
-      const waitForCode = (): Promise<string> =>
+      const waitForCode = (expectedState: string): Promise<string> =>
         new Promise<string>((codeResolve, codeReject) => {
           let settled = false
 
@@ -58,6 +58,12 @@ function startCallbackServer(): Promise<{
             const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`)
             if (!url.pathname.startsWith('/callback')) {
               res.writeHead(404).end()
+              return
+            }
+            const receivedState = url.searchParams.get('state')
+            if (receivedState !== expectedState) {
+              res.writeHead(400).end()
+              settle(() => codeReject(new Error('OAuth state mismatch — possible CSRF attack')))
               return
             }
             const code = url.searchParams.get('code')
@@ -136,6 +142,7 @@ export async function beginGoogleOAuth(
   clientSecret: string
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const { verifier, challenge } = generatePKCE()
+  const state = verifier.slice(0, 16)
   const { port, waitForCode, shutdown } = await startCallbackServer()
   const redirectUri = `http://127.0.0.1:${port}/callback`
 
@@ -148,7 +155,7 @@ export async function beginGoogleOAuth(
   authUrl.searchParams.set('code_challenge_method', 'S256')
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
-  authUrl.searchParams.set('state', verifier.slice(0, 16))  // CSRF nonce (I2)
+  authUrl.searchParams.set('state', state)  // CSRF nonce (I2)
 
   try {
     await shell.openExternal(authUrl.toString())
@@ -158,7 +165,7 @@ export async function beginGoogleOAuth(
   }
 
   try {
-    const code = await waitForCode()
+    const code = await waitForCode(state)
     return exchangeCode({ code, verifier, clientId, clientSecret, redirectUri })
   } catch (err) {
     shutdown()
