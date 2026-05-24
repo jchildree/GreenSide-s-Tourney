@@ -1,7 +1,7 @@
 import type { Draft } from '../../shared/types'
 
 interface PushParams {
-  apiKey: string
+  accessToken: string
   tournamentId: string | null
   draft: Draft
 }

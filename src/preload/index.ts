@@ -27,8 +27,8 @@ const api = {
   beginGoogleOAuth: (): Promise<void> =>
     ipcRenderer.invoke('begin-google-oauth'),
 
-  verifyChallongeKey: (apiKey: string, communityUrl: string): Promise<boolean> =>
-    ipcRenderer.invoke('verify-challonge-key', apiKey, communityUrl),
+  beginChallongeOAuth: (): Promise<void> =>
+    ipcRenderer.invoke('begin-challonge-oauth'),
 }
 
 contextBridge.exposeInMainWorld('api', api)

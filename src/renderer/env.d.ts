@@ -17,7 +17,7 @@ declare global {
       saveCredential: (service: CredentialService, value: string) => Promise<void>
       checkOnboarding: () => Promise<import('../shared/types').OnboardingStatus>
       beginGoogleOAuth: () => Promise<void>
-      verifyChallongeKey: (apiKey: string, communityUrl: string) => Promise<boolean>
+      beginChallongeOAuth: () => Promise<void>
     }
   }
 }

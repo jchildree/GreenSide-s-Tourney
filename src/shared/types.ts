@@ -1,5 +1,5 @@
 export type DraftStyle = 'random' | 'snake' | 'manual'
-export type CredentialService = 'google' | 'challonge'
+export type CredentialService = 'google' | 'challonge' | 'challonge-refresh'
 
 export interface Tourney {
   name: string

@@ -171,27 +171,15 @@ function GoogleStep({ onNext }: { onNext: () => void }): JSX.Element {
 /* ── Challonge step ─────────────────────────────────── */
 
 function ChallongeStep({ onNext }: { onNext: () => void }): JSX.Element {
-  const [apiKey, setApiKey] = useState('')
-  const [communityUrl, setCommunityUrl] = useState('')
-  const [status, setStatus] = useState<'idle' | 'verifying' | 'done' | 'error'>('idle')
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'done' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
-  async function handleVerify(): Promise<void> {
-    if (!apiKey.trim()) {
-      setErrorMsg('API key is required.')
-      setStatus('error')
-      return
-    }
-    setStatus('verifying')
+  async function handleConnect(): Promise<void> {
+    setStatus('waiting')
     setErrorMsg('')
     try {
-      const valid = await window.api.verifyChallongeKey(apiKey.trim(), communityUrl.trim())
-      if (valid) {
-        setStatus('done')
-      } else {
-        setErrorMsg('Invalid API key — Challonge returned an error. Double-check and try again.')
-        setStatus('error')
-      }
+      await window.api.beginChallongeOAuth()
+      setStatus('done')
     } catch (err) {
       setErrorMsg((err as Error).message)
       setStatus('error')
@@ -204,17 +192,10 @@ function ChallongeStep({ onNext }: { onNext: () => void }): JSX.Element {
         Connect Challonge
       </h2>
 
-      <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-        Find your API key at{' '}
-        <a
-          href="https://challonge.com/settings#api-section"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'var(--color-gold)', textDecoration: 'underline', cursor: 'pointer' }}
-        >
-          challonge.com/settings → Developer API
-        </a>
-        . Don't have an account?{' '}
+      <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+        Grant access to your Challonge account so the app can create and manage your tournament brackets.
+        A browser window will open for sign-in — you'll be redirected back automatically.
+        Don't have an account?{' '}
         <a
           href="https://challonge.com/register"
           target="_blank"
@@ -223,50 +204,13 @@ function ChallongeStep({ onNext }: { onNext: () => void }): JSX.Element {
         >
           Register free
         </a>
-        . Need a community?{' '}
-        <a
-          href="https://challonge.com/communities/new"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'var(--color-silver)', textDecoration: 'underline', cursor: 'pointer' }}
-        >
-          Create one
-        </a>
         .
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <div>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem' }}>API Key</label>
-          <input
-            className="form-input"
-            type="password"
-            placeholder="Paste your Challonge API key"
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            disabled={status === 'verifying' || status === 'done'}
-          />
-        </div>
-        <div>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem' }}>
-            Community URL{' '}
-            <span style={{ color: 'var(--color-muted)', fontWeight: 400, textTransform: 'none', fontSize: '0.7rem' }}>
-              (optional)
-            </span>
-          </label>
-          <input
-            className="form-input"
-            type="text"
-            placeholder="https://challonge.com/communities/yourname"
-            value={communityUrl}
-            onChange={e => setCommunityUrl(e.target.value)}
-            disabled={status === 'verifying' || status === 'done'}
-          />
-        </div>
-      </div>
-
-      {status === 'verifying' && (
-        <p style={{ color: 'var(--color-gold)', fontSize: '0.85rem', marginBottom: '1rem' }}>Verifying with Challonge…</p>
+      {status === 'waiting' && (
+        <p style={{ color: 'var(--color-gold)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+          Browser opened — complete sign-in, then return here.
+        </p>
       )}
       {status === 'error' && (
         <p className="status-err" style={{ marginBottom: '1rem' }}>{errorMsg}</p>
@@ -278,12 +222,12 @@ function ChallongeStep({ onNext }: { onNext: () => void }): JSX.Element {
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         {status !== 'done' ? (
           <button
-            onClick={handleVerify}
-            disabled={status === 'verifying'}
+            onClick={handleConnect}
+            disabled={status === 'waiting'}
             className="btn-gold"
             style={{ flex: 1 }}
           >
-            {status === 'verifying' ? 'Verifying…' : 'Verify & Save Key'}
+            {status === 'waiting' ? 'Waiting for browser…' : 'Sign in with Challonge'}
           </button>
         ) : (
           <button onClick={onNext} className="btn-gold" style={{ flex: 1 }}>
