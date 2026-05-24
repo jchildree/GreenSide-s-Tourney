@@ -9,6 +9,8 @@ export interface Tourney {
   draftStyle: DraftStyle
   minPlayers: number
   maxPlayers: number
+  teamSize: number        // players per team, default 4
+  enabledFields: Partial<Record<'name' | 'game' | 'dateTime' | 'signupDeadline' | 'draftStyle' | 'minPlayers' | 'maxPlayers' | 'teamSize', boolean>>
 }
 
 export interface Player {
@@ -49,7 +51,9 @@ export const DEFAULT_TOURNEY: Tourney = {
   signupDeadline: '',
   draftStyle: 'random',
   minPlayers: 2,
-  maxPlayers: 32
+  maxPlayers: 32,
+  teamSize: 4,
+  enabledFields: {}
 }
 
 export const DEFAULT_DRAFT: Draft = {
