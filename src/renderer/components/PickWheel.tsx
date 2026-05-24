@@ -2,10 +2,11 @@ import { useState } from 'react'
 
 interface PickWheelProps {
   players: string[]
-  onPick: (name: string) => void
+  onSpinComplete: (name: string) => void
+  onSpinStart?: () => void
 }
 
-export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
+export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelProps): JSX.Element {
   const [spinning, setSpinning] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const empty = players.length === 0
@@ -14,6 +15,7 @@ export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
     if (empty || spinning) return
     setSpinning(true)
     setPicked(null)
+    onSpinStart?.()
 
     let ticks = 0
     const total = 20 + Math.floor(Math.random() * 10)
@@ -27,7 +29,7 @@ export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
         const winner = players[Math.floor(Math.random() * players.length)]
         setPicked(winner)
         setSpinning(false)
-        onPick(winner)
+        onSpinComplete(winner)
       }
     }, 80)
   }
@@ -49,11 +51,11 @@ export function PickWheel({ players, onPick }: PickWheelProps): JSX.Element {
         transition: 'color 75ms ease',
         textAlign: 'center',
       }}>
-        {picked ?? (empty ? 'No players left' : '—')}
+        {picked ?? (empty ? 'No players left' : '--')}
       </div>
 
       <button onClick={spin} disabled={spinning || empty} className="btn-gold" style={{ padding: '0.5rem 2rem', letterSpacing: '0.15em' }}>
-        {spinning ? 'Spinning…' : 'Spin'}
+        {spinning ? 'Spinning...' : 'Spin'}
       </button>
 
       {!empty && (
