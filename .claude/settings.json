@@ -21,6 +21,17 @@
                                                              }
                                                          ]
                                            }
-                                       ]
+                                       ],
+                  "PostToolUse":  [
+                                      {
+                                          "matcher":  "Write|Edit",
+                                          "hooks":  [
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\check-encoding.js\""
+                                                        }
+                                                    ]
+                                      }
+                                  ]
               }
 }

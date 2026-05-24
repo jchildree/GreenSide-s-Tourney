@@ -56,3 +56,20 @@ LOTR-themed label vocabulary (e.g. `cast-it-into-the-fire` for wontfix). See `do
 ### Domain docs
 
 Single-context layout — one `CONTEXT.md` + `docs/adr/` at project root. See `docs/agents/domain.md`.
+
+## Encoding & Shell Conventions
+
+- Never use em-dashes, en-dashes, smart quotes, or other non-ASCII Unicode in PowerShell scripts, JSON files, or shell commands. Use ASCII equivalents (-, --, ", ').
+- For PowerShell 5.1 compatibility, use `[char]0x2014` instead of backtick-u{2014} escape syntax.
+- Write all JSON files without UTF-8 BOM to avoid JSON.parse failures.
+- Shell is PowerShell 7+ (pwsh) on Windows 11. Primary user is on win32.
+
+## Workflow Expectations
+
+- When asked to fix a bug, propose a concrete fix or make the edit within the first few tool calls. Do not spend many turns reading files without action. If exploration is genuinely needed, state that explicitly before reading.
+- Before bulk editing many files (>5), do a dry-run on one file first and confirm the approach.
+
+## Git & Repo Hygiene
+
+- Before the first `git push` on a new repo, run `git ls-files` and check for large files; ensure node_modules, build artifacts, and binaries (>50MB) are gitignored.
+- When push fails with divergent/unrelated histories, ASK before force-pushing rather than assuming.
