@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync } from './store'
+import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync, saveSync } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
@@ -46,8 +46,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('update-google-form', async () => {
     const oauthToken = getCredential('google')
     if (!oauthToken) throw new Error('Google OAuth token not set')
+    const sync = readSync()
+    if (!sync.googleFormId) throw new Error('Google Form ID not set — paste it in the Control tab first')
     const tourney = readTourney()
-    await updateGoogleForm({ oauthToken, tourney })
+    await updateGoogleForm({ oauthToken, formId: sync.googleFormId, tourney })
+    saveSync({ ...sync, googleFormLastUpdated: new Date().toISOString() })
+  })
+
+  ipcMain.handle('set-google-form-id', (_e, formId: string) => {
+    const sync = readSync()
+    saveSync({ ...sync, googleFormId: formId.trim() || null })
   })
 
   ipcMain.handle('fetch-signups', async () => {

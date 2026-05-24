@@ -29,6 +29,9 @@ const api = {
 
   beginChallongeOAuth: (): Promise<void> =>
     ipcRenderer.invoke('begin-challonge-oauth'),
+
+  setGoogleFormId: (formId: string): Promise<void> =>
+    ipcRenderer.invoke('set-google-form-id', formId),
 }
 
 contextBridge.exposeInMainWorld('api', api)
