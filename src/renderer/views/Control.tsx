@@ -4,6 +4,7 @@ export function Control(): JSX.Element {
   const [formId, setFormId] = useState('')
   const [formIdSaved, setFormIdSaved] = useState(false)
   const [status, setStatus] = useState('')
+  const [pushing, setPushing] = useState(false)
 
   useEffect(() => {
     window.api.getSync().then(s => {
@@ -24,6 +25,19 @@ export function Control(): JSX.Element {
       setStatus('Google Form updated.')
     } catch (err) {
       setStatus(`Error: ${(err as Error).message}`)
+    }
+  }
+
+  async function handlePushToChallonge(): Promise<void> {
+    setPushing(true)
+    setStatus('')
+    try {
+      await window.api.pushToChallonge()
+      setStatus('Tournament pushed to Challonge!')
+    } catch (err) {
+      setStatus(`Error: ${(err as Error).message}`)
+    } finally {
+      setPushing(false)
     }
   }
 
@@ -74,7 +88,9 @@ export function Control(): JSX.Element {
 
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
           <p className="form-label" style={{ marginBottom: '0.5rem' }}>Challonge</p>
-          <button className="btn-gold" disabled>Start Tournament</button>
+          <button onClick={handlePushToChallonge} disabled={pushing} className="btn-gold">
+            {pushing ? 'Pushing…' : 'Push to Challonge'}
+          </button>
         </div>
 
       </div>

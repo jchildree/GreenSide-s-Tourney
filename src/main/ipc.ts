@@ -36,11 +36,18 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle('push-to-challonge', async () => {
-    const accessToken = getCredential('challonge')
-    if (!accessToken) throw new Error('Challonge not connected')
+    const refreshToken = getCredential('challonge-refresh')
+    if (!refreshToken) throw new Error('Challonge not connected — re-authenticate in Settings')
     const sync = readSync()
     const draft = readDraft()
-    await pushToChallonge({ accessToken, tournamentId: sync.challongeTournamentId, draft })
+    const tourney = readTourney()
+    const { tournamentId } = await pushToChallonge({
+      refreshToken,
+      tournamentId: sync.challongeTournamentId,
+      draft,
+      tourney,
+    })
+    saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
   })
 
   ipcMain.handle('update-google-form', async () => {
