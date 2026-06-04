@@ -48,7 +48,7 @@ export function Draft(): JSX.Element {
       currentPickIndex,
       pickQueue,
     })
-  }, [timerDuration, currentPickIndex])
+  }, [timerDuration, currentPickIndex, pickQueue])
 
   function advancePick(): void {
     setCurrentPickIndex(i => i + 1)
