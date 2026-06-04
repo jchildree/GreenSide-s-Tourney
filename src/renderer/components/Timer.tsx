@@ -70,7 +70,9 @@ export function Timer({
     if (isExpired && !expiredFired.current) {
       expiredFired.current = true
       playBeep()
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 } })
+      try {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 } })
+      } catch (_) {}
       onExpire()
     }
   }, [isExpired, onExpire])
