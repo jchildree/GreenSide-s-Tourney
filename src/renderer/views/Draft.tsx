@@ -15,11 +15,10 @@ export function Draft(): JSX.Element {
     Promise.all([
       window.api.getDraft(),
       window.api.getSignups(),
-    ]).then(([d, s]) => {
+      window.api.getDraftSession(),
+    ]).then(([d, s, session]) => {
       setDraft(d)
       setSignups(s)
-    })
-    window.api.getDraftSession().then(session => {
       setTimerDuration(session.timerDuration)
       setRemainingSeconds(session.remainingSeconds)
     })
