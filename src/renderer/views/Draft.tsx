@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Draft as DraftState, Signups, Tourney } from '../../shared/types'
 import { DEFAULT_TOURNEY } from '../../shared/types'
 import { Timer } from '../components/Timer'
@@ -115,7 +115,7 @@ export function Draft(): JSX.Element {
                     )
                   : d.teams,
               }))
-              advancePick()
+              if (entry) advancePick()
             }}
           />
         </div>
