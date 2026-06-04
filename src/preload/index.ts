@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession } from '../shared/types'
 
 const api = {
   getTourney: (): Promise<Tourney> => ipcRenderer.invoke('get-tourney'),
@@ -32,6 +32,9 @@ const api = {
 
   setGoogleFormId: (formId: string): Promise<void> =>
     ipcRenderer.invoke('set-google-form-id', formId),
+
+  getDraftSession: (): Promise<DraftSession> => ipcRenderer.invoke('get-draft-session'),
+  saveDraftSession: (s: DraftSession): Promise<void> => ipcRenderer.invoke('save-draft-session', s),
 }
 
 contextBridge.exposeInMainWorld('api', api)

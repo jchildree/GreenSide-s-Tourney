@@ -83,3 +83,23 @@ export const DEFAULT_ONBOARDING_STATUS: OnboardingStatus = {
   challongeConnected: false,
   complete: false,
 }
+
+export interface PickQueueEntry {
+  teamName: string
+  round: number
+  pickNumber: number
+}
+
+export interface DraftSession {
+  timerDuration: number      // seconds, 10-3600
+  remainingSeconds: number
+  currentPickIndex: number
+  pickQueue: PickQueueEntry[]
+}
+
+export const DEFAULT_DRAFT_SESSION: DraftSession = {
+  timerDuration: 60,
+  remainingSeconds: 60,
+  currentPickIndex: 0,
+  pickQueue: [],
+}

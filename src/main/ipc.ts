@@ -1,12 +1,12 @@
 import { ipcMain } from 'electron'
-import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync, saveSync } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
-import type { Tourney, DraftPick, Draft, Team, OnboardingStatus } from '../shared/types'
+import type { Tourney, DraftPick, Draft, Team, OnboardingStatus, DraftSession } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
@@ -51,12 +51,12 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('update-google-form', async () => {
-    const oauthToken = getCredential('google')
-    if (!oauthToken) throw new Error('Google OAuth token not set')
+    const refreshToken = getCredential('google')
+    if (!refreshToken) throw new Error('Google OAuth token not set')
     const sync = readSync()
-    if (!sync.googleFormId) throw new Error('Google Form ID not set — paste it in the Control tab first')
+    if (!sync.googleFormId) throw new Error('Google Form ID not set -- paste it in the Control tab first')
     const tourney = readTourney()
-    await updateGoogleForm({ oauthToken, formId: sync.googleFormId, tourney })
+    await updateGoogleForm({ refreshToken, formId: sync.googleFormId, tourney })
     saveSync({ ...sync, googleFormLastUpdated: new Date().toISOString() })
   })
 
@@ -66,11 +66,13 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('fetch-signups', async () => {
-    const oauthToken = getCredential('google')
-    if (!oauthToken) throw new Error('Google OAuth token not set')
+    const refreshToken = getCredential('google')
+    if (!refreshToken) throw new Error('Google OAuth token not set')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form not configured')
-    return fetchSignups({ oauthToken, formId: sync.googleFormId })
+    const signups = await fetchSignups({ refreshToken, formId: sync.googleFormId })
+    saveSignups(signups)
+    return signups
   })
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
@@ -96,4 +98,7 @@ export function registerIpcHandlers(): void {
     saveCredential('challonge', accessToken)
     saveCredential('challonge-refresh', refreshToken)
   })
+
+  ipcMain.handle('get-draft-session', () => readDraftSession())
+  ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))
 }
