@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Draft as DraftState, Player, PickQueueEntry, Signups, Tourney } from '../../shared/types'
 import { generatePickQueue } from '../utils/pickOrder'
 
@@ -27,6 +27,12 @@ export function useDraft(): UseDraftReturn {
   const [timerRunning, setTimerRunning] = useState(false)
   const [currentPickIndex, setCurrentPickIndex] = useState(0)
 
+  const timerDurationRef = useRef(timerDuration)
+  timerDurationRef.current = timerDuration
+
+  const currentPickIndexRef = useRef(currentPickIndex)
+  currentPickIndexRef.current = currentPickIndex
+
   useEffect(() => {
     Promise.all([
       window.api.getDraft(),
@@ -52,6 +58,9 @@ export function useDraft(): UseDraftReturn {
     )
   }, [tourney, draft.teams, signups.length])
 
+  const pickQueueRef = useRef(pickQueue)
+  pickQueueRef.current = pickQueue
+
   useEffect(() => {
     window.api.saveDraftSession({
       timerDuration,
@@ -63,12 +72,13 @@ export function useDraft(): UseDraftReturn {
 
   function advancePick(): void {
     setCurrentPickIndex(i => i + 1)
-    setRemainingSeconds(timerDuration)
+    setRemainingSeconds(timerDurationRef.current)
     setTimerRunning(true)
   }
 
   function onPick(playerName: string): void {
-    const entry = pickQueue[currentPickIndex]
+    const idx = currentPickIndexRef.current
+    const entry = pickQueueRef.current[idx]
     setDraft(d => ({
       ...d,
       pickOrder: [...d.pickOrder, playerName],
