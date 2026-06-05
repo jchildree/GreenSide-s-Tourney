@@ -1,30 +1,18 @@
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from '../auth/oauth-config'
 import type { Tourney, Signups, Player } from '../../shared/types'
+import { refreshAccessToken } from './token-refresh'
 
 const FORMS_BASE = 'https://forms.googleapis.com/v1/forms'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
-async function getAccessToken(refreshToken: string): Promise<string> {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    throw new Error('Google OAuth credentials not configured in oauth-config.ts')
-  }
-  const resp = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-    }),
+async function getToken(refreshToken: string): Promise<string> {
+  return refreshAccessToken({
+    tokenUrl: TOKEN_URL,
+    clientId: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    refreshToken,
+    serviceName: 'Google',
   })
-  if (!resp.ok) {
-    const body = await resp.text()
-    throw new Error(`Google token refresh failed (${resp.status}): ${body}`)
-  }
-  const data = (await resp.json()) as { access_token: string }
-  if (!data.access_token) throw new Error('Google did not return an access token')
-  return data.access_token
 }
 
 interface UpdateFormParams {
@@ -58,7 +46,7 @@ function fmtDate(iso: string): string {
 
 export async function updateGoogleForm(params: UpdateFormParams): Promise<void> {
   const { refreshToken, formId, tourney } = params
-  const accessToken = await getAccessToken(refreshToken)
+  const accessToken = await getToken(refreshToken)
 
   const description = [
     `Game: ${tourney.game || 'TBD'}`,
@@ -94,7 +82,7 @@ export async function updateGoogleForm(params: UpdateFormParams): Promise<void> 
 
 export async function fetchSignups(params: FetchSignupsParams): Promise<Signups> {
   const { refreshToken, formId } = params
-  const accessToken = await getAccessToken(refreshToken)
+  const accessToken = await getToken(refreshToken)
 
   const formResp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
