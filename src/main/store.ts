@@ -1,8 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
-import type { Tourney, Signups, Draft, Sync, AppConfig } from '../shared/types'
-import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC, DEFAULT_CONFIG } from '../shared/types'
+import type { Tourney, Signups, Draft, Sync, AppConfig, DraftSession, DraftPick, Team } from '../shared/types'
+import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC, DEFAULT_CONFIG, DEFAULT_DRAFT_SESSION } from '../shared/types'
 
 function dataDir(): string {
   return path.join(app.getPath('userData'), 'data')
@@ -32,6 +32,16 @@ function writeJson<T>(name: string, value: T): void {
   fs.writeFileSync(filePath(name), JSON.stringify(value, null, 2), 'utf-8')
 }
 
+export function buildDraftFromPicks(picks: DraftPick[]): Draft {
+  const teamMap = new Map<string, string[]>()
+  for (const pick of picks) {
+    if (!teamMap.has(pick.teamName)) teamMap.set(pick.teamName, [])
+    teamMap.get(pick.teamName)!.push(pick.playerName)
+  }
+  const teams: Team[] = Array.from(teamMap.entries()).map(([name, players]) => ({ name, players }))
+  return { teams, pickOrder: picks.map(p => p.playerName) }
+}
+
 export function readTourney(): Tourney { return readJson('tourney.json', DEFAULT_TOURNEY) }
 export function saveTourney(t: Tourney): void { writeJson('tourney.json', t) }
 
@@ -46,3 +56,6 @@ export function saveSync(s: Sync): void { writeJson('sync.json', s) }
 
 export function readConfig(): AppConfig { return readJson('config.json', DEFAULT_CONFIG) }
 export function saveConfig(c: AppConfig): void { writeJson('config.json', c) }
+
+export function readDraftSession(): DraftSession { return readJson('draft-session.json', DEFAULT_DRAFT_SESSION) }
+export function saveDraftSession(s: DraftSession): void { writeJson('draft-session.json', s) }

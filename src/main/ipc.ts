@@ -1,12 +1,12 @@
 import { ipcMain } from 'electron'
-import { readTourney, saveTourney, readSignups, readDraft, saveDraft, readSync } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
-import type { Tourney, DraftPick, Draft, Team, OnboardingStatus } from '../shared/types'
+import type { Tourney, DraftPick, OnboardingStatus, DraftSession } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
@@ -15,16 +15,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('get-signups', () => readSignups())
 
   ipcMain.handle('get-draft', () => readDraft())
-  ipcMain.handle('save-draft', (_e, picks: DraftPick[]) => {
-    const teamMap = new Map<string, string[]>()
-    for (const pick of picks) {
-      if (!teamMap.has(pick.teamName)) teamMap.set(pick.teamName, [])
-      teamMap.get(pick.teamName)!.push(pick.playerName)
-    }
-    const teams: Team[] = Array.from(teamMap.entries()).map(([name, players]) => ({ name, players }))
-    const draft: Draft = { teams, pickOrder: picks.map(p => p.playerName) }
-    saveDraft(draft)
-  })
+  ipcMain.handle('save-draft', (_e, picks: DraftPick[]) => saveDraft(buildDraftFromPicks(picks)))
 
   ipcMain.handle('get-sync', () => readSync())
 
@@ -36,31 +27,52 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle('push-to-challonge', async () => {
-    const accessToken = getCredential('challonge')
-    if (!accessToken) throw new Error('Challonge not connected')
+    const refreshToken = getCredential('challonge-refresh')
+    if (!refreshToken) throw new Error('Challonge not connected — re-authenticate in Settings')
     const sync = readSync()
     const draft = readDraft()
-    await pushToChallonge({ accessToken, tournamentId: sync.challongeTournamentId, draft })
+    const tourney = readTourney()
+    const { tournamentId } = await pushToChallonge({
+      refreshToken,
+      tournamentId: sync.challongeTournamentId,
+      draft,
+      tourney,
+    })
+    try {
+      saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
+    } catch {
+      // Push succeeded; sync state loss is recoverable on next push
+    }
   })
 
   ipcMain.handle('update-google-form', async () => {
-    const oauthToken = getCredential('google')
-    if (!oauthToken) throw new Error('Google OAuth token not set')
+    const refreshToken = getCredential('google')
+    if (!refreshToken) throw new Error('Google OAuth token not set')
+    const sync = readSync()
+    if (!sync.googleFormId) throw new Error('Google Form ID not set -- paste it in the Control tab first')
     const tourney = readTourney()
-    await updateGoogleForm({ oauthToken, tourney })
+    await updateGoogleForm({ refreshToken, formId: sync.googleFormId, tourney })
+    saveSync({ ...sync, googleFormLastUpdated: new Date().toISOString() })
+  })
+
+  ipcMain.handle('set-google-form-id', (_e, formId: string) => {
+    const sync = readSync()
+    saveSync({ ...sync, googleFormId: formId.trim() || null })
   })
 
   ipcMain.handle('fetch-signups', async () => {
-    const oauthToken = getCredential('google')
-    if (!oauthToken) throw new Error('Google OAuth token not set')
+    const refreshToken = getCredential('google')
+    if (!refreshToken) throw new Error('Google OAuth token not set')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form not configured')
-    return fetchSignups({ oauthToken, formId: sync.googleFormId })
+    const signups = await fetchSignups({ refreshToken, formId: sync.googleFormId })
+    saveSignups(signups)
+    return signups
   })
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
     const googleConnected = getCredential('google') !== null
-    const challongeConnected = getCredential('challonge') !== null
+    const challongeConnected = getCredential('challonge-refresh') !== null
     return {
       googleConnected,
       challongeConnected,
@@ -81,4 +93,7 @@ export function registerIpcHandlers(): void {
     saveCredential('challonge', accessToken)
     saveCredential('challonge-refresh', refreshToken)
   })
+
+  ipcMain.handle('get-draft-session', () => readDraftSession())
+  ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))
 }

@@ -51,6 +51,7 @@ export function App(): JSX.Element {
       <header style={{
         backgroundColor: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-border)',
+        boxShadow: '0 1px 0 rgba(34, 197, 94, 0.08)',
         padding: '0.75rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
@@ -59,7 +60,7 @@ export function App(): JSX.Element {
       }}>
         <div style={{ flexShrink: 0 }}>
           <h1 style={{
-            color: 'var(--color-gold)',
+            color: 'var(--color-primary)',
             fontWeight: 700,
             fontSize: '1.25rem',
             letterSpacing: '0.15em',
@@ -95,12 +96,12 @@ export function App(): JSX.Element {
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   background: active
-                    ? 'linear-gradient(160deg, #1e3a5f 0%, #1a2e4a 100%)'
+                    ? 'linear-gradient(160deg, #1a3d24 0%, #122b19 100%)'
                     : 'transparent',
-                  color: active ? 'var(--color-gold)' : 'var(--color-muted)',
+                  color: active ? 'var(--color-primary)' : 'var(--color-muted)',
                   border: '1px solid',
                   borderColor: active ? 'var(--color-border)' : 'transparent',
-                  borderRadius: '0.3rem',
+                  borderRadius: '0.6rem',
                   cursor: 'pointer',
                   transition: 'color 150ms ease, background 150ms ease, border-color 150ms ease',
                   whiteSpace: 'nowrap',

@@ -18,6 +18,7 @@ declare global {
       checkOnboarding: () => Promise<import('../shared/types').OnboardingStatus>
       beginGoogleOAuth: () => Promise<void>
       beginChallongeOAuth: () => Promise<void>
+      setGoogleFormId: (formId: string) => Promise<void>
     }
   }
 }
