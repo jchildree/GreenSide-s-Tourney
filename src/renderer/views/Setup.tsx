@@ -4,14 +4,42 @@ import { DEFAULT_TOURNEY } from '../../shared/types'
 
 export function Setup(): JSX.Element {
   const [tourney, setTourney] = useState<Tourney>(DEFAULT_TOURNEY)
+  const [signupCount, setSignupCount] = useState(0)
   const [status, setStatus] = useState('')
   const [newTeamName, setNewTeamName] = useState('')
 
   useEffect(() => {
-    window.api.getTourney().then(t => {
-      setTourney({ ...DEFAULT_TOURNEY, ...t })
-    })
+    Promise.all([window.api.getTourney(), window.api.getSignups()]).then(([t, signups]) => {
+      const merged = { ...DEFAULT_TOURNEY, ...t }
+      const count = signups.length
+      setSignupCount(count)
+      if (merged.teamNames.length === 0 && count > 0) {
+        const suggested = Math.ceil(count / Math.max(1, merged.teamSize))
+        merged.teamNames = Array.from({ length: suggested }, (_, i) => `Team ${i + 1}`)
+      }
+      setTourney(merged)
+    }).catch(() => {})
   }, [])
+
+  const suggestedCount = Math.ceil(signupCount / Math.max(1, tourney.teamSize))
+
+  function syncToSignups(): void {
+    setTourney(t => {
+      const current = t.teamNames
+      const target = Math.ceil(signupCount / Math.max(1, t.teamSize))
+      if (current.length < target) {
+        const appended = Array.from(
+          { length: target - current.length },
+          (_, i) => `Team ${current.length + i + 1}`
+        )
+        return { ...t, teamNames: [...current, ...appended] }
+      }
+      if (current.length > target) {
+        return { ...t, teamNames: current.slice(0, target) }
+      }
+      return t
+    })
+  }
 
   async function handleSave(e: React.FormEvent): Promise<void> {
     e.preventDefault()
@@ -46,8 +74,8 @@ export function Setup(): JSX.Element {
     setNewTeamName('')
   }
 
-  function removeTeam(name: string): void {
-    setTourney(t => ({ ...t, teamNames: t.teamNames.filter(n => n !== name) }))
+  function removeTeam(idx: number): void {
+    setTourney(t => ({ ...t, teamNames: t.teamNames.filter((_, i) => i !== idx) }))
   }
 
   function renameTeam(idx: number, value: string): void {
@@ -91,9 +119,24 @@ export function Setup(): JSX.Element {
         </div>
 
         <div>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Teams ({tourney.teamNames.length})
-          </label>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.25rem' }}>
+            <label className="form-label" style={{ display: 'block' }}>
+              Teams ({tourney.teamNames.length})
+            </label>
+            <button
+              type="button"
+              onClick={syncToSignups}
+              className="btn-ghost"
+              style={{ padding: '0.125rem 0.5rem', fontSize: '0.75rem' }}
+            >
+              Sync to Signups
+            </button>
+          </div>
+          {signupCount > 0 && (
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.75rem', marginBottom: '0.5rem', marginTop: 0 }}>
+              {signupCount} signups / {tourney.teamSize} per team = {suggestedCount} suggested
+            </p>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '0.5rem' }}>
             {tourney.teamNames.map((name, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -115,7 +158,7 @@ export function Setup(): JSX.Element {
                 />
                 <button
                   type="button"
-                  onClick={() => removeTeam(name)}
+                  onClick={() => removeTeam(idx)}
                   className="btn-ghost"
                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}
                 >
