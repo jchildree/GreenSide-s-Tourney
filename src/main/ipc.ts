@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
@@ -15,16 +15,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('get-signups', () => readSignups())
 
   ipcMain.handle('get-draft', () => readDraft())
-  ipcMain.handle('save-draft', (_e, picks: DraftPick[]) => {
-    const teamMap = new Map<string, string[]>()
-    for (const pick of picks) {
-      if (!teamMap.has(pick.teamName)) teamMap.set(pick.teamName, [])
-      teamMap.get(pick.teamName)!.push(pick.playerName)
-    }
-    const teams: Team[] = Array.from(teamMap.entries()).map(([name, players]) => ({ name, players }))
-    const draft: Draft = { teams, pickOrder: picks.map(p => p.playerName) }
-    saveDraft(draft)
-  })
+  ipcMain.handle('save-draft', (_e, picks: DraftPick[]) => saveDraft(buildDraftFromPicks(picks)))
 
   ipcMain.handle('get-sync', () => readSync())
 
