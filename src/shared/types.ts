@@ -1,6 +1,12 @@
 export type DraftStyle = 'random' | 'snake' | 'manual'
 export type CredentialService = 'google' | 'challonge' | 'challonge-refresh'
 
+export const CRED = {
+  google: 'google',
+  challonge: 'challonge',
+  challongeRefresh: 'challonge-refresh',
+} as const satisfies Record<string, CredentialService>
+
 export interface Tourney {
   name: string
   game: string

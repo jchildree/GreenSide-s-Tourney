@@ -7,6 +7,7 @@ import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
 import type { Tourney, DraftPick, OnboardingStatus, DraftSession } from '../shared/types'
+import { CRED } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
@@ -27,7 +28,7 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle('push-to-challonge', async () => {
-    const refreshToken = getCredential('challonge-refresh')
+    const refreshToken = getCredential(CRED.challongeRefresh)
     if (!refreshToken) throw new Error('Challonge not connected — re-authenticate in Settings')
     const sync = readSync()
     const draft = readDraft()
@@ -46,7 +47,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('update-google-form', async () => {
-    const refreshToken = getCredential('google')
+    const refreshToken = getCredential(CRED.google)
     if (!refreshToken) throw new Error('Google OAuth token not set')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form ID not set -- paste it in the Control tab first')
@@ -61,7 +62,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('fetch-signups', async () => {
-    const refreshToken = getCredential('google')
+    const refreshToken = getCredential(CRED.google)
     if (!refreshToken) throw new Error('Google OAuth token not set')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form not configured')
@@ -71,8 +72,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
-    const googleConnected = getCredential('google') !== null
-    const challongeConnected = getCredential('challonge-refresh') !== null
+    const googleConnected = getCredential(CRED.google) !== null
+    const challongeConnected = getCredential(CRED.challongeRefresh) !== null
     return {
       googleConnected,
       challongeConnected,
@@ -82,7 +83,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('begin-google-oauth', async (): Promise<void> => {
     const { refreshToken } = await beginGoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-    saveCredential('google', refreshToken)
+    saveCredential(CRED.google, refreshToken)
   })
 
   ipcMain.handle('begin-challonge-oauth', async (): Promise<void> => {
@@ -90,8 +91,8 @@ export function registerIpcHandlers(): void {
       throw new Error('Challonge OAuth credentials not configured. Fill in oauth-config.ts.')
     }
     const { accessToken, refreshToken } = await beginChallongeOAuth(CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET)
-    saveCredential('challonge', accessToken)
-    saveCredential('challonge-refresh', refreshToken)
+    saveCredential(CRED.challonge, accessToken)
+    saveCredential(CRED.challongeRefresh, refreshToken)
   })
 
   ipcMain.handle('get-draft-session', () => readDraftSession())
