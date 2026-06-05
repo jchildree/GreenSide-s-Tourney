@@ -136,7 +136,7 @@ export function App(): JSX.Element {
         flexDirection: 'column',
         alignItems: 'center',
       }}>
-        <div style={{ width: '100%', maxWidth: '960px' }}>
+        <div style={{ width: '100%', maxWidth: '1600px' }}>
           {view === 'setup'   && <Setup />}
           {view === 'draft'   && <Draft />}
           {view === 'bracket' && <Bracket />}

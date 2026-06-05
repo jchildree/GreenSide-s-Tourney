@@ -68,8 +68,8 @@ export function Draft(): JSX.Element {
 
       <PickQueue queue={pickQueue} currentIndex={currentPickIndex} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 2fr', gap: '1rem', alignItems: 'start' }}>
-        <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr minmax(0, 2fr)', gap: '1rem', alignItems: 'stretch' }}>
+        <div style={{ position: 'sticky', top: 0, alignSelf: 'start' }}>
           <p style={{
             color: 'var(--color-muted)',
             fontSize: '0.7rem',
