@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { useState, useRef } from 'react'
 import type { Team } from '../../shared/types'
 
 interface TeamRosterProps {
@@ -12,118 +11,120 @@ interface TeamRosterProps {
 
 interface TeamCardProps {
   team: Team
-  allPlayers: string[]
+  /** Players not assigned to ANY team — computed by TeamRoster and passed down. */
+  unassignedPlayers: string[]
   onRenameTeam?: (oldName: string, newName: string) => void
   onRemovePlayer?: (teamName: string, playerName: string) => void
   onAddPlayer?: (teamName: string, playerName: string) => void
 }
 
-function TeamCard({ team, allPlayers, onRenameTeam, onRemovePlayer, onAddPlayer }: TeamCardProps): JSX.Element {
-  const [editing, setEditing] = useState(false)
-  const [nameInput, setNameInput] = useState(team.name)
-  const [addingPlayer, setAddingPlayer] = useState(false)
-  const [playerInput, setPlayerInput] = useState('')
+function TeamCard({
+  team,
+  unassignedPlayers,
+  onRenameTeam,
+  onRemovePlayer,
+  onAddPlayer,
+}: TeamCardProps): JSX.Element {
+  const [editMode, setEditMode] = useState(false)
+  const [nameValue, setNameValue] = useState(team.name)
+  const [selectedPlayer, setSelectedPlayer] = useState('')
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
-  // Keep nameInput in sync when team.name changes externally (e.g. after a rename)
-  useEffect(() => {
-    if (!editing) setNameInput(team.name)
-  }, [team.name, editing])
-
-  const { setNodeRef, isOver } = useDroppable({ id: team.name })
-
-  const unassignedPlayers = allPlayers.filter(p => !team.players.includes(p))
+  const isEditable = Boolean(onRenameTeam ?? onRemovePlayer ?? onAddPlayer)
 
   function commitRename(): void {
-    const trimmed = nameInput.trim()
+    const trimmed = nameValue.trim()
     if (trimmed && trimmed !== team.name && onRenameTeam) {
       onRenameTeam(team.name, trimmed)
     } else {
-      setNameInput(team.name)
+      setNameValue(team.name)
     }
-    setEditing(false)
+  }
+
+  function handleNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Enter') {
+      nameInputRef.current?.blur()
+    } else if (e.key === 'Escape') {
+      setNameValue(team.name)
+      nameInputRef.current?.blur()
+    }
   }
 
   function handleAddPlayer(): void {
-    const trimmed = playerInput.trim()
-    if (trimmed && onAddPlayer) {
-      onAddPlayer(team.name, trimmed)
+    if (selectedPlayer && onAddPlayer) {
+      onAddPlayer(team.name, selectedPlayer)
+      setSelectedPlayer('')
     }
-    setPlayerInput('')
-    setAddingPlayer(false)
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      className="card"
-      style={{
-        borderColor: isOver ? 'var(--color-gold)' : 'rgba(200, 169, 110, 0.2)',
-        transition: 'border-color 150ms',
-        backgroundColor: isOver ? 'rgba(200, 169, 110, 0.04)' : undefined,
-      }}
-    >
-      {/* Team name header */}
+    <div className="card" style={{ borderColor: 'rgba(200, 169, 110, 0.2)', position: 'relative' }}>
+      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid rgba(200, 169, 110, 0.2)', paddingBottom: '0.25rem' }}>
-        {editing ? (
+        {editMode && onRenameTeam ? (
           <input
+            ref={nameInputRef}
             className="form-input"
-            value={nameInput}
-            autoFocus
-            onChange={e => setNameInput(e.target.value)}
+            value={nameValue}
+            onChange={e => setNameValue(e.target.value)}
             onBlur={commitRename}
-            onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setNameInput(team.name); setEditing(false) } }}
-            style={{ flex: 1, fontSize: '0.8rem', padding: '0.2rem 0.4rem' }}
+            onKeyDown={handleNameKeyDown}
+            style={{ flex: 1, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.125rem 0.375rem' }}
           />
         ) : (
-          <h3
-            onClick={() => onRenameTeam && setEditing(true)}
-            style={{
-              color: 'var(--color-gold)',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              margin: 0,
-              flex: 1,
-              cursor: onRenameTeam ? 'text' : 'default',
-            }}
-          >
+          <h3 style={{
+            flex: 1,
+            color: 'var(--color-gold)',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            fontSize: '0.8rem',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}>
             {team.name}
           </h3>
         )}
-        <span style={{ fontSize: '0.65rem', color: 'var(--color-muted)' }}>
-          {team.players.length} players
-        </span>
+
+        {isEditable && (
+          editMode ? (
+            <button
+              className="btn-ghost"
+              onClick={() => setEditMode(false)}
+              style={{ fontSize: '0.7rem', padding: '0.1rem 0.5rem' }}
+            >
+              Done
+            </button>
+          ) : (
+            <button
+              className="btn-ghost"
+              onClick={() => setEditMode(true)}
+              style={{ fontSize: '0.7rem', padding: '0.1rem 0.5rem' }}
+            >
+              Edit
+            </button>
+          )
+        )}
       </div>
 
       {/* Player list */}
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
         {team.players.map(p => (
-          <li
-            key={p}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              color: 'var(--color-silver)',
-              fontSize: '0.875rem',
-              padding: '0.15rem 0',
-            }}
-          >
-            <span>{p}</span>
-            {onRemovePlayer && (
+          <li key={p} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ flex: 1, color: 'var(--color-silver)', fontSize: '0.875rem' }}>{p}</span>
+            {editMode && onRemovePlayer && (
               <button
                 onClick={() => onRemovePlayer(team.name, p)}
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--color-muted)',
+                  color: 'var(--color-danger)',
                   cursor: 'pointer',
                   fontSize: '0.75rem',
-                  padding: '0 0.2rem',
                   lineHeight: 1,
+                  padding: '0.1rem 0.25rem',
+                  borderRadius: '0.25rem',
                 }}
-                title="Remove player"
+                aria-label={`Remove ${p}`}
               >
                 x
               </button>
@@ -132,45 +133,49 @@ function TeamCard({ team, allPlayers, onRenameTeam, onRemovePlayer, onAddPlayer 
         ))}
       </ul>
 
-      {/* Add player */}
-      {onAddPlayer && (
-        <div style={{ marginTop: '0.5rem' }}>
-          {addingPlayer ? (
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <select
-                className="form-input"
-                value={playerInput}
-                onChange={e => setPlayerInput(e.target.value)}
-                style={{ flex: 1, fontSize: '0.75rem', padding: '0.2rem 0.4rem' }}
-              >
-                <option value="">Select player...</option>
-                {unassignedPlayers.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              <button className="btn-gold" onClick={handleAddPlayer} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>Add</button>
-              <button className="btn-ghost" onClick={() => { setAddingPlayer(false); setPlayerInput('') }} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>Cancel</button>
-            </div>
-          ) : (
-            <button
-              className="btn-ghost"
-              onClick={() => setAddingPlayer(true)}
-              disabled={unassignedPlayers.length === 0}
-              style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', width: '100%' }}
-            >
-              + Add Player
-            </button>
-          )}
+      {/* Add player row */}
+      {editMode && onAddPlayer && unassignedPlayers.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem', alignItems: 'center' }}>
+          <select
+            className="form-input"
+            value={selectedPlayer}
+            onChange={e => setSelectedPlayer(e.target.value)}
+            style={{ flex: 1, fontSize: '0.8rem', padding: '0.1rem 0.375rem' }}
+          >
+            <option value="">-- add player --</option>
+            {unassignedPlayers.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <button
+            className="btn-gold"
+            onClick={handleAddPlayer}
+            disabled={!selectedPlayer}
+            style={{ fontSize: '0.75rem', padding: '0.1rem 0.625rem' }}
+          >
+            Add
+          </button>
         </div>
       )}
     </div>
   )
 }
 
-export function TeamRoster({ teams, allPlayers = [], onRenameTeam, onRemovePlayer, onAddPlayer }: TeamRosterProps): JSX.Element {
+export function TeamRoster({
+  teams,
+  allPlayers,
+  onRenameTeam,
+  onRemovePlayer,
+  onAddPlayer,
+}: TeamRosterProps): JSX.Element {
   if (teams.length === 0) {
     return <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', fontStyle: 'italic' }}>No teams assigned yet.</p>
   }
+
+  // Compute players not assigned to ANY team so each TeamCard dropdown only shows
+  // genuinely unassigned players (prevents double-assigning a player).
+  const allAssigned = new Set(teams.flatMap(t => t.players))
+  const trulyUnassigned = (allPlayers ?? []).filter(p => !allAssigned.has(p))
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
@@ -178,7 +183,7 @@ export function TeamRoster({ teams, allPlayers = [], onRenameTeam, onRemovePlaye
         <TeamCard
           key={team.name}
           team={team}
-          allPlayers={allPlayers}
+          unassignedPlayers={trulyUnassigned}
           onRenameTeam={onRenameTeam}
           onRemovePlayer={onRemovePlayer}
           onAddPlayer={onAddPlayer}
