@@ -6,7 +6,7 @@ import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
-import type { Tourney, DraftPick, Draft, Team, OnboardingStatus, DraftSession } from '../shared/types'
+import type { Tourney, DraftPick, OnboardingStatus, DraftSession } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
