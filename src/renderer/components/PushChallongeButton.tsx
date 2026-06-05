@@ -1,13 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 
 export function PushChallongeButton(): JSX.Element {
   const [success, setSuccess] = useState(false)
 
+  useEffect(() => {
+    if (!success) return
+    const id = setTimeout(() => setSuccess(false), 3000)
+    return () => clearTimeout(id)
+  }, [success])
+
   const { run, loading, error } = useAsyncAction(async () => {
     await window.api.pushToChallonge()
     setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
   })
 
   return (
