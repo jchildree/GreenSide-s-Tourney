@@ -6,6 +6,9 @@ const FORMS_BASE = 'https://forms.googleapis.com/v1/forms'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 async function getToken(refreshToken: string): Promise<string> {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth credentials not configured in oauth-config.ts')
+  }
   return refreshAccessToken({
     tokenUrl: TOKEN_URL,
     clientId: GOOGLE_CLIENT_ID,
