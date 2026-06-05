@@ -123,7 +123,7 @@ export function Timer({
           style={{
             width: '4rem',
             background: 'transparent',
-            border: '1px solid rgba(200,169,110,0.4)',
+            border: '1px solid rgba(34,197,94,0.4)',
             color: 'var(--color-primary)',
             fontFamily: 'monospace',
             fontSize: '0.85rem',

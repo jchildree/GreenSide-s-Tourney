@@ -44,11 +44,11 @@ export function Draft(): JSX.Element {
   useEffect(() => {
     window.api.saveDraftSession({
       timerDuration,
-      remainingSeconds: remainingSeconds,
+      remainingSeconds: timerDuration,
       currentPickIndex,
       pickQueue,
     })
-  }, [timerDuration, remainingSeconds, currentPickIndex, pickQueue])
+  }, [timerDuration, currentPickIndex, pickQueue])
 
   function advancePick(): void {
     setCurrentPickIndex(i => i + 1)
