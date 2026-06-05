@@ -5,6 +5,9 @@ const FORMS_BASE = 'https://forms.googleapis.com/v1/forms'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 async function getAccessToken(refreshToken: string): Promise<string> {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth credentials not configured in oauth-config.ts')
+  }
   const resp = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -25,13 +28,13 @@ async function getAccessToken(refreshToken: string): Promise<string> {
 }
 
 interface UpdateFormParams {
-  oauthToken: string
+  refreshToken: string
   formId: string
   tourney: Tourney
 }
 
 interface FetchSignupsParams {
-  oauthToken: string
+  refreshToken: string
   formId: string
 }
 
@@ -50,18 +53,18 @@ interface FormResponse {
 
 function fmtDate(iso: string): string {
   if (!iso) return 'TBD'
-  return new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 export async function updateGoogleForm(params: UpdateFormParams): Promise<void> {
-  const { oauthToken, formId, tourney } = params
-  const accessToken = await getAccessToken(oauthToken)
+  const { refreshToken, formId, tourney } = params
+  const accessToken = await getAccessToken(refreshToken)
 
   const description = [
     `Game: ${tourney.game || 'TBD'}`,
     `Tournament Date: ${fmtDate(tourney.dateTime)}`,
     `Signup Deadline: ${fmtDate(tourney.signupDeadline)}`,
-    `Players: ${tourney.minPlayers}–${tourney.maxPlayers}`,
+    `Players: ${tourney.minPlayers}-${tourney.maxPlayers}`,
   ].join('\n')
 
   const resp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}:batchUpdate`, {
@@ -90,10 +93,9 @@ export async function updateGoogleForm(params: UpdateFormParams): Promise<void> 
 }
 
 export async function fetchSignups(params: FetchSignupsParams): Promise<Signups> {
-  const { oauthToken, formId } = params
-  const accessToken = await getAccessToken(oauthToken)
+  const { refreshToken, formId } = params
+  const accessToken = await getAccessToken(refreshToken)
 
-  // Fetch form structure to resolve question IDs by title
   const formResp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
@@ -112,18 +114,23 @@ export async function fetchSignups(params: FetchSignupsParams): Promise<Signups>
       title: (item.title ?? '').toLowerCase(),
     }))
 
-  const nameQ = questions.find(q => q.title.includes('name'))
-  const discordQ = questions.find(q => q.title.includes('discord'))
+  const nameQ =
+    questions.find(q => q.title === 'name' || q.title === 'player name' || q.title === 'your name') ??
+    questions.find(q => q.title.startsWith('name') && !q.title.includes('game') && !q.title.includes('team')) ??
+    questions.find(q => q.title.includes('name') && !q.title.includes('game') && !q.title.includes('team'))
 
-  // Fetch all responses
-  const respResp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}/responses`, {
+  const discordQ =
+    questions.find(q => q.title === 'discord' || q.title === 'discord handle' || q.title === 'discord username' || q.title === 'discord tag') ??
+    questions.find(q => q.title.includes('discord'))
+
+  const responsesResp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}/responses`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
-  if (!respResp.ok) {
-    const body = await respResp.text()
-    throw new Error(`Failed to fetch form responses (${respResp.status}): ${body}`)
+  if (!responsesResp.ok) {
+    const body = await responsesResp.text()
+    throw new Error(`Failed to fetch form responses (${responsesResp.status}): ${body}`)
   }
-  const data = (await respResp.json()) as { responses?: FormResponse[] }
+  const data = (await responsesResp.json()) as { responses?: FormResponse[] }
 
   return (data.responses ?? []).map((r): Player => {
     const get = (qId: string | undefined): string => {

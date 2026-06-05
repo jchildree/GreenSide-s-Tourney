@@ -44,11 +44,11 @@ export function Draft(): JSX.Element {
   useEffect(() => {
     window.api.saveDraftSession({
       timerDuration,
-      remainingSeconds: timerDuration,
+      remainingSeconds: remainingSeconds,
       currentPickIndex,
       pickQueue,
     })
-  }, [timerDuration, currentPickIndex, pickQueue])
+  }, [timerDuration, remainingSeconds, currentPickIndex, pickQueue])
 
   function advancePick(): void {
     setCurrentPickIndex(i => i + 1)
@@ -64,11 +64,11 @@ export function Draft(): JSX.Element {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(200, 169, 110, 0.3)',
+        borderBottom: '1px solid rgba(34, 197, 94, 0.3)',
         paddingBottom: '0.5rem',
       }}>
         <h2 style={{
-          color: 'var(--color-gold)',
+          color: 'var(--color-primary)',
           fontSize: '1.125rem',
           fontWeight: 700,
           letterSpacing: '0.15em',

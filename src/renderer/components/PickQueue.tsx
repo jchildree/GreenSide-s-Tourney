@@ -21,7 +21,7 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
       flexDirection: 'column',
       gap: '2px',
       borderRadius: '4px',
-      border: '1px solid rgba(200, 169, 110, 0.2)',
+      border: '1px solid rgba(34, 197, 94, 0.2)',
       padding: '4px',
     }}>
       {queue.map((entry, i) => {
@@ -38,8 +38,8 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
               gap: '0.75rem',
               padding: '6px 10px',
               borderRadius: '3px',
-              borderLeft: isCurrent ? '3px solid var(--color-gold)' : '3px solid transparent',
-              background: isCurrent ? 'rgba(200, 169, 110, 0.12)' : 'transparent',
+              borderLeft: isCurrent ? '3px solid var(--color-primary)' : '3px solid transparent',
+              background: isCurrent ? 'rgba(34, 197, 94, 0.12)' : 'transparent',
               opacity: isPast ? 0.4 : 1,
               transition: 'opacity 0.2s',
             }}
@@ -47,7 +47,7 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
             <span style={{
               fontFamily: 'monospace',
               fontSize: '0.75rem',
-              color: 'rgba(200, 169, 110, 0.5)',
+              color: 'rgba(34, 197, 94, 0.5)',
               minWidth: '2rem',
               textAlign: 'right',
             }}>
@@ -56,7 +56,7 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
             <span style={{
               flex: 1,
               fontSize: '0.875rem',
-              color: isCurrent ? 'var(--color-gold)' : 'inherit',
+              color: isCurrent ? 'var(--color-primary)' : 'inherit',
               fontWeight: isCurrent ? 600 : 400,
             }}>
               {entry.teamName}
@@ -64,7 +64,7 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
             <span style={{
               fontFamily: 'monospace',
               fontSize: '0.75rem',
-              color: 'rgba(200, 169, 110, 0.5)',
+              color: 'rgba(34, 197, 94, 0.5)',
             }}>
               R{entry.round}
             </span>
@@ -76,7 +76,7 @@ export function PickQueue({ queue, currentIndex }: PickQueueProps): JSX.Element 
           padding: '1rem',
           textAlign: 'center',
           fontSize: '0.8rem',
-          color: 'rgba(200, 169, 110, 0.4)',
+          color: 'rgba(34, 197, 94, 0.4)',
         }}>
           No picks queued
         </div>

@@ -56,14 +56,20 @@ export function Timer({
     }
   }, [remainingSeconds])
 
+  const remainingRef = useRef(remainingSeconds)
+  useEffect(() => { remainingRef.current = remainingSeconds }, [remainingSeconds])
+
+  const onTickRef = useRef(onTick)
+  useEffect(() => { onTickRef.current = onTick }, [onTick])
+
   // Interval tick
   useEffect(() => {
     if (!running) return
     const id = setInterval(() => {
-      onTick(Math.max(0, remainingSeconds - 1))
+      onTickRef.current(Math.max(0, remainingRef.current - 1))
     }, 1000)
     return () => clearInterval(id)
-  }, [running, remainingSeconds, onTick])
+  }, [running])
 
   // Expire side-effects
   useEffect(() => {
@@ -88,7 +94,7 @@ export function Timer({
         fontWeight: 700,
         fontVariantNumeric: 'tabular-nums',
         letterSpacing: '-0.02em',
-        color: isExpired ? 'var(--color-danger)' : 'var(--color-gold)',
+        color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
         transition: 'color 300ms ease',
       }}>
         {format(remainingSeconds)}
@@ -96,7 +102,7 @@ export function Timer({
 
       {/* Duration controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <label style={{ fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--color-gold)', opacity: 0.7 }}>
+        <label style={{ fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--color-primary)', opacity: 0.7 }}>
           DURATION
         </label>
         <input
@@ -106,7 +112,7 @@ export function Timer({
           step={1}
           value={durationSeconds}
           onChange={e => onDurationChange(clampDuration(Number(e.target.value)))}
-          style={{ width: '8rem', accentColor: 'var(--color-gold)' }}
+          style={{ width: '8rem', accentColor: 'var(--color-primary)' }}
         />
         <input
           type="number"
@@ -118,7 +124,7 @@ export function Timer({
             width: '4rem',
             background: 'transparent',
             border: '1px solid rgba(200,169,110,0.4)',
-            color: 'var(--color-gold)',
+            color: 'var(--color-primary)',
             fontFamily: 'monospace',
             fontSize: '0.85rem',
             textAlign: 'center',
@@ -126,7 +132,7 @@ export function Timer({
             padding: '2px 4px',
           }}
         />
-        <span style={{ fontSize: '0.7rem', color: 'var(--color-gold)', opacity: 0.5 }}>s</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', opacity: 0.5 }}>s</span>
       </div>
 
       {/* Action buttons */}
