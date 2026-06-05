@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Sync } from '../../shared/types'
+import { PushChallongeButton } from '../components/PushChallongeButton'
 
 const EMPTY_SYNC: Sync = {
   challongeLastPushed: null,
@@ -10,21 +11,8 @@ const EMPTY_SYNC: Sync = {
 
 export function Bracket(): JSX.Element {
   const [sync, setSync] = useState<Sync>(EMPTY_SYNC)
-  const [status, setStatus] = useState('')
 
   useEffect(() => { window.api.getSync().then(setSync) }, [])
-
-  async function handlePush(): Promise<void> {
-    setStatus('')
-    try {
-      await window.api.pushToChallonge()
-      setStatus('Pushed to Challonge.')
-    } catch (err) {
-      setStatus(`Error: ${(err as Error).message}`)
-    }
-  }
-
-  const isError = status.startsWith('Error')
 
   return (
     <div>
@@ -43,10 +31,7 @@ export function Bracket(): JSX.Element {
           </p>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <button onClick={handlePush} className="btn-gold">Push to Challonge</button>
-        {status && <span className={isError ? 'status-err' : 'status-ok'}>{status}</span>}
-      </div>
+      <PushChallongeButton />
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useAsyncAction } from '../hooks/useAsyncAction'
+import { PushChallongeButton } from '../components/PushChallongeButton'
 
 export function Control(): JSX.Element {
   const [formId, setFormId] = useState('')
   const [formIdSaved, setFormIdSaved] = useState(false)
-  const [status, setStatus] = useState('')
-  const [pushing, setPushing] = useState(false)
+  const [googleStatus, setGoogleStatus] = useState('')
 
   useEffect(() => {
     window.api.getSync().then(s => {
@@ -18,40 +19,19 @@ export function Control(): JSX.Element {
     setTimeout(() => setFormIdSaved(false), 2000)
   }
 
-  async function handleUpdateForm(): Promise<void> {
-    setStatus('')
-    try {
-      await window.api.updateGoogleForm()
-      setStatus('Google Form updated.')
-    } catch (err) {
-      setStatus(`Error: ${(err as Error).message}`)
-    }
-  }
+  const updateForm = useAsyncAction(async () => {
+    await window.api.updateGoogleForm()
+    setGoogleStatus('Google Form updated.')
+  })
 
-  async function handlePushToChallonge(): Promise<void> {
-    setPushing(true)
-    setStatus('')
-    try {
-      await window.api.pushToChallonge()
-      setStatus('Tournament pushed to Challonge!')
-    } catch (err) {
-      setStatus(`Error: ${(err as Error).message}`)
-    } finally {
-      setPushing(false)
-    }
-  }
+  const fetchSignups = useAsyncAction(async () => {
+    const signups = await window.api.fetchSignups()
+    setGoogleStatus(`Fetched ${signups.length} signup${signups.length !== 1 ? 's' : ''}.`)
+  })
 
-  async function handleFetchSignups(): Promise<void> {
-    setStatus('')
-    try {
-      const signups = await window.api.fetchSignups()
-      setStatus(`Fetched ${signups.length} signup${signups.length !== 1 ? 's' : ''}.`)
-    } catch (err) {
-      setStatus(`Error: ${(err as Error).message}`)
-    }
-  }
-
-  const isError = status.startsWith('Error')
+  const googleError = updateForm.error || fetchSignups.error
+  const isGoogleError = Boolean(googleError)
+  const displayStatus = googleError || googleStatus
 
   return (
     <div>
@@ -81,22 +61,26 @@ export function Control(): JSX.Element {
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
           <p className="form-label" style={{ marginBottom: '0.5rem' }}>Google Forms</p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={handleUpdateForm} className="btn-gold">Update Form</button>
-            <button onClick={handleFetchSignups} className="btn-ghost">Fetch Signups</button>
+            <button onClick={updateForm.run} disabled={updateForm.loading} className="btn-gold">
+              {updateForm.loading ? 'Updating...' : 'Update Form'}
+            </button>
+            <button onClick={fetchSignups.run} disabled={fetchSignups.loading} className="btn-ghost">
+              {fetchSignups.loading ? 'Fetching...' : 'Fetch Signups'}
+            </button>
           </div>
+          {displayStatus && (
+            <p className={isGoogleError ? 'status-err' : 'status-ok'} style={{ marginTop: '0.5rem' }}>
+              {displayStatus}
+            </p>
+          )}
         </div>
 
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
           <p className="form-label" style={{ marginBottom: '0.5rem' }}>Challonge</p>
-          <button onClick={handlePushToChallonge} disabled={pushing} className="btn-gold">
-            {pushing ? 'Pushing…' : 'Push to Challonge'}
-          </button>
+          <PushChallongeButton />
         </div>
 
       </div>
-      {status && (
-        <p className={isError ? 'status-err' : 'status-ok'} style={{ marginTop: '0.75rem' }}>{status}</p>
-      )}
     </div>
   )
 }
