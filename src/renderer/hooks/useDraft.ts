@@ -61,10 +61,13 @@ export function useDraft(): UseDraftReturn {
   const pickQueueRef = useRef(pickQueue)
   pickQueueRef.current = pickQueue
 
+  const remainingSecondsRef = useRef(remainingSeconds)
+  remainingSecondsRef.current = remainingSeconds
+
   useEffect(() => {
     window.api.saveDraftSession({
       timerDuration,
-      remainingSeconds: timerDuration,
+      remainingSeconds: remainingSecondsRef.current,
       currentPickIndex,
       pickQueue,
     })
@@ -93,7 +96,20 @@ export function useDraft(): UseDraftReturn {
     if (entry) advancePick()
   }
 
-  const unassigned = signups.filter(p => !draft.pickOrder.includes(p.name))
+  const unassigned = useMemo(() => {
+    const pickedCounts = new Map<string, number>()
+    for (const name of draft.pickOrder) {
+      pickedCounts.set(name, (pickedCounts.get(name) ?? 0) + 1)
+    }
+    return signups.filter(p => {
+      const remaining = pickedCounts.get(p.name) ?? 0
+      if (remaining > 0) {
+        pickedCounts.set(p.name, remaining - 1)
+        return false
+      }
+      return true
+    })
+  }, [signups, draft.pickOrder])
 
   return {
     draft,

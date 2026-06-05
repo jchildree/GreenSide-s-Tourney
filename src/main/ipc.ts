@@ -38,7 +38,11 @@ export function registerIpcHandlers(): void {
       draft,
       tourney,
     })
-    saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
+    try {
+      saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
+    } catch {
+      // Push succeeded; sync state loss is recoverable on next push
+    }
   })
 
   ipcMain.handle('update-google-form', async () => {
@@ -68,7 +72,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
     const googleConnected = getCredential('google') !== null
-    const challongeConnected = getCredential('challonge') !== null
+    const challongeConnected = getCredential('challonge-refresh') !== null
     return {
       googleConnected,
       challongeConnected,

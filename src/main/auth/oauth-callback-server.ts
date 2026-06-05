@@ -1,4 +1,4 @@
-import { createServer } from 'node:http'
+import { createServer, IncomingMessage, ServerResponse } from 'node:http'
 
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000
 
@@ -40,6 +40,7 @@ export function startOAuthCallbackServer(opts: OAuthCallbackServerOpts = {}): Pr
             if (settled) return
             settled = true
             clearTimeout(timer)
+            server.removeListener('request', onRequest)
             server.close()
             ;(server as any).closeAllConnections?.()
             fn()
@@ -49,7 +50,7 @@ export function startOAuthCallbackServer(opts: OAuthCallbackServerOpts = {}): Pr
             settle(() => codeReject(new Error(`${serviceName} OAuth timed out -- no redirect received within 5 minutes`)))
           }, timeoutMs)
 
-          server.on('request', (req, res) => {
+          const onRequest = (req: IncomingMessage, res: ServerResponse): void => {
             const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`)
             if (!url.pathname.startsWith('/callback')) {
               res.writeHead(404).end()
@@ -82,7 +83,8 @@ export function startOAuthCallbackServer(opts: OAuthCallbackServerOpts = {}): Pr
             } else {
               settle(() => codeResolve(code))
             }
-          })
+          }
+          server.on('request', onRequest)
         })
 
       resolve({ port, waitForCode, shutdown })
@@ -90,7 +92,8 @@ export function startOAuthCallbackServer(opts: OAuthCallbackServerOpts = {}): Pr
 
     server.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
-        reject(new Error(`Port ${requestedPort} is already in use. Close other applications and try again.`))
+        const portDesc = requestedPort === 0 ? 'a system-assigned port' : `port ${requestedPort}`
+        reject(new Error(`${serviceName} OAuth failed: ${portDesc} is already in use. Try again.`))
       } else {
         reject(err)
       }

@@ -67,19 +67,21 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
     }
     const createData = (await createResp.json()) as { data: { id: string } }
     tournamentId = createData.data.id
+  }
 
-    if (draft.teams.length > 0) {
-      const participants = draft.teams.map(t => ({ name: t.name }))
-      const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
-        method: 'POST',
-        headers: hdrs,
-        body: JSON.stringify({ data: { type: 'Participants', attributes: { participants } } }),
-      })
-      if (!addResp.ok) {
-        const body = await addResp.text()
+  if (draft.teams.length > 0) {
+    const participants = draft.teams.map(t => ({ name: t.name }))
+    const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({ data: { type: 'Participants', attributes: { participants } } }),
+    })
+    if (!addResp.ok) {
+      const body = await addResp.text()
+      if (!existingId) {
         await fetch(`${API_BASE}/tournaments/${tournamentId}.json`, { method: 'DELETE', headers: hdrs })
-        throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
       }
+      throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
     }
   }
 
