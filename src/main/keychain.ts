@@ -28,3 +28,8 @@ export function getCredential(service: CredentialService): string | null {
   const buf = fs.readFileSync(p) as Buffer
   return safeStorage.decryptString(buf)
 }
+
+export function deleteCredential(service: CredentialService): void {
+  const p = credPath(service)
+  if (fs.existsSync(p)) fs.unlinkSync(p)
+}

@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
-import { getCredential, saveCredential } from './keychain'
+import { getCredential, saveCredential, deleteCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
@@ -48,11 +48,16 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('update-google-form', async () => {
     const refreshToken = getCredential(CRED.google)
-    if (!refreshToken) throw new Error('Google OAuth token not set')
+    if (!refreshToken) throw new Error('GOOGLE_CREDENTIAL_EXPIRED')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form ID not set -- paste it in the Control tab first')
     const tourney = readTourney()
-    await updateGoogleForm({ refreshToken, formId: sync.googleFormId, tourney })
+    try {
+      await updateGoogleForm({ refreshToken, formId: sync.googleFormId, tourney })
+    } catch (err) {
+      if ((err as Error).message === 'GOOGLE_CREDENTIAL_EXPIRED') deleteCredential(CRED.google)
+      throw err
+    }
     saveSync({ ...sync, googleFormLastUpdated: new Date().toISOString() })
   })
 
@@ -63,12 +68,17 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('fetch-signups', async () => {
     const refreshToken = getCredential(CRED.google)
-    if (!refreshToken) throw new Error('Google OAuth token not set')
+    if (!refreshToken) throw new Error('GOOGLE_CREDENTIAL_EXPIRED')
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form not configured')
-    const signups = await fetchSignups({ refreshToken, formId: sync.googleFormId })
-    saveSignups(signups)
-    return signups
+    try {
+      const signups = await fetchSignups({ refreshToken, formId: sync.googleFormId })
+      saveSignups(signups)
+      return signups
+    } catch (err) {
+      if ((err as Error).message === 'GOOGLE_CREDENTIAL_EXPIRED') deleteCredential(CRED.google)
+      throw err
+    }
   })
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {

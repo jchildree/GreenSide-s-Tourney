@@ -55,6 +55,14 @@ export function Control(): JSX.Element {
     if (errorMsg) setActionError(errorMsg)
   }, [updateForm.error, fetchSignups.error])
 
+  const googleExpired = actionError.includes('GOOGLE_CREDENTIAL_EXPIRED')
+
+  const reconnectGoogle = useAsyncAction(async () => {
+    await window.api.beginGoogleOAuth()
+    setActionError('')
+    setActionStatus('Google reconnected.')
+  })
+
   const activeFormId = sync?.googleFormId ?? formId.trim()
 
   return (
@@ -123,18 +131,43 @@ export function Control(): JSX.Element {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={updateForm.run} disabled={updateForm.loading || !activeFormId} className="btn-gold">
+            <button onClick={updateForm.run} disabled={updateForm.loading || !activeFormId || googleExpired} className="btn-gold">
               {updateForm.loading ? 'Updating...' : 'Update Form'}
             </button>
-            <button onClick={fetchSignups.run} disabled={fetchSignups.loading || !activeFormId} className="btn-ghost">
+            <button onClick={fetchSignups.run} disabled={fetchSignups.loading || !activeFormId || googleExpired} className="btn-ghost">
               {fetchSignups.loading ? 'Fetching...' : 'Fetch Signups'}
             </button>
-            {(actionError || actionStatus) && (
-              <span className={actionError ? 'status-err' : 'status-ok'} style={{ fontSize: '0.8rem' }}>
-                {actionError || actionStatus}
-              </span>
+            {actionStatus && !actionError && (
+              <span className="status-ok" style={{ fontSize: '0.8rem' }}>{actionStatus}</span>
             )}
           </div>
+
+          {googleExpired && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.625rem 0.75rem',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '4px',
+            }}>
+              <span style={{ color: '#f87171', fontSize: '0.8rem', flex: 1 }}>
+                Google credentials expired. Reconnect to continue.
+              </span>
+              <button
+                onClick={reconnectGoogle.run}
+                disabled={reconnectGoogle.loading}
+                className="btn-gold"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', whiteSpace: 'nowrap' }}
+              >
+                {reconnectGoogle.loading ? 'Opening browser...' : 'Reconnect Google'}
+              </button>
+            </div>
+          )}
+          {!googleExpired && actionError && (
+            <span className="status-err" style={{ fontSize: '0.8rem' }}>{actionError}</span>
+          )}
 
           {signups.length > 0 && (
             <div style={{
