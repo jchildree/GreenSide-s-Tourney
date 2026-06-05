@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
 import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge } from './integrations/challonge'
@@ -97,4 +97,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('get-draft-session', () => readDraftSession())
   ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))
+
+  ipcMain.handle('open-external', (_e, url: string) => shell.openExternal(url))
 }

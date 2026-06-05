@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Draft as DraftState, Player, PickQueueEntry, Signups, Tourney } from '../../shared/types'
+import { DEFAULT_TOURNEY } from '../../shared/types'
 import { generatePickQueue } from '../utils/pickOrder'
 
 interface UseDraftReturn {
   draft: DraftState
+  effectiveTeams: { name: string; players: string[] }[]
   signups: Signups
   tourney: Tourney | null
   timerDuration: number
@@ -45,18 +47,23 @@ export function useDraft(): UseDraftReturn {
       setTimerDuration(session.timerDuration)
       setRemainingSeconds(session.remainingSeconds)
       setCurrentPickIndex(session.currentPickIndex)
-      setTourney(t)
+      setTourney({ ...DEFAULT_TOURNEY, ...t })
     })
   }, [])
 
+  // Teams from picks when draft is in progress; seeded from tourney config before any picks
+  const effectiveTeams = useMemo(() => {
+    if (draft.teams.length > 0) return draft.teams
+    const names = tourney?.teamNames ?? []
+    return names.map(name => ({ name, players: [] }))
+  }, [draft.teams, tourney?.teamNames])
+
   const pickQueue = useMemo(() => {
-    if (!tourney || !draft.teams.length) return []
-    return generatePickQueue(
-      draft.teams.map(t => t.name),
-      (tourney.draftStyle === 'random' ? 'snake' : tourney.draftStyle) as 'snake' | 'linear',
-      Math.ceil(signups.length / Math.max(draft.teams.length, 1))
-    )
-  }, [tourney, draft.teams, signups.length])
+    if (!tourney || !effectiveTeams.length) return []
+    const style = tourney.draftStyle === 'random' ? 'snake' : tourney.draftStyle as 'snake' | 'linear'
+    const rounds = tourney.teamSize ?? 4
+    return generatePickQueue(effectiveTeams.map(t => t.name), style, rounds)
+  }, [tourney, effectiveTeams])
 
   const pickQueueRef = useRef(pickQueue)
   pickQueueRef.current = pickQueue
@@ -86,12 +93,12 @@ export function useDraft(): UseDraftReturn {
       ...d,
       pickOrder: [...d.pickOrder, playerName],
       teams: entry
-        ? d.teams.map(t =>
+        ? (d.teams.length > 0 ? d.teams : effectiveTeams).map(t =>
             t.name === entry.teamName
               ? { ...t, players: [...t.players, playerName] }
               : t
           )
-        : d.teams,
+        : (d.teams.length > 0 ? d.teams : effectiveTeams),
     }))
     if (entry) advancePick()
   }
@@ -113,6 +120,7 @@ export function useDraft(): UseDraftReturn {
 
   return {
     draft,
+    effectiveTeams,
     signups,
     tourney,
     timerDuration,

@@ -11,7 +11,7 @@ const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft
   await import('../../src/main/store')
 
 const DEFAULT = {
-  tourney: { name: '', game: '', dateTime: '', signupDeadline: '', draftStyle: 'random', minPlayers: 2, maxPlayers: 32 },
+  tourney: { name: '', game: '', dateTime: '', signupDeadline: '', draftStyle: 'random', minPlayers: 2, maxPlayers: 32, teamNames: [], teamSize: 4 },
   draft: { teams: [], pickOrder: [] },
   sync: { challongeLastPushed: null, challongeTournamentId: null, googleFormLastUpdated: null }
 }

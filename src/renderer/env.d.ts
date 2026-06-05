@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession } from '../shared/types'
 
 declare global {
   interface Window {
@@ -19,6 +19,9 @@ declare global {
       beginGoogleOAuth: () => Promise<void>
       beginChallongeOAuth: () => Promise<void>
       setGoogleFormId: (formId: string) => Promise<void>
+      getDraftSession: () => Promise<DraftSession>
+      saveDraftSession: (s: DraftSession) => Promise<void>
+      openExternal: (url: string) => Promise<void>
     }
   }
 }

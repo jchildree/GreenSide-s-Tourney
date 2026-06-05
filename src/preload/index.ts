@@ -35,6 +35,8 @@ const api = {
 
   getDraftSession: (): Promise<DraftSession> => ipcRenderer.invoke('get-draft-session'),
   saveDraftSession: (s: DraftSession): Promise<void> => ipcRenderer.invoke('save-draft-session', s),
+
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
 }
 
 contextBridge.exposeInMainWorld('api', api)

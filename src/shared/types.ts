@@ -15,6 +15,8 @@ export interface Tourney {
   draftStyle: DraftStyle
   minPlayers: number
   maxPlayers: number
+  teamNames: string[]     // team slot names for draft
+  teamSize: number        // players per team
 }
 
 export interface Player {
@@ -55,7 +57,9 @@ export const DEFAULT_TOURNEY: Tourney = {
   signupDeadline: '',
   draftStyle: 'random',
   minPlayers: 2,
-  maxPlayers: 32
+  maxPlayers: 32,
+  teamNames: [],
+  teamSize: 4,
 }
 
 export const DEFAULT_DRAFT: Draft = {
