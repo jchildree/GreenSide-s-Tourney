@@ -13,10 +13,12 @@ export function Draft(): JSX.Element {
     currentPickIndex,
     pickQueue,
     unassigned,
+    tourney,
     setTimerDuration,
     setRemainingSeconds,
     setTimerRunning,
     onPick,
+    onAutoFill,
   } = useDraft()
 
   const currentPick = pickQueue[currentPickIndex]
@@ -40,6 +42,11 @@ export function Draft(): JSX.Element {
         }}>
           Draft Board
         </h2>
+        {tourney?.draftStyle === 'random' && unassigned.length > 0 && currentPickIndex < pickQueue.length && (
+          <button className="btn-ghost" onClick={onAutoFill}>
+            Auto-Fill All
+          </button>
+        )}
         <Timer
           durationSeconds={timerDuration}
           remainingSeconds={remainingSeconds}
