@@ -33,12 +33,19 @@ export function registerIpcHandlers(): void {
     const sync = readSync()
     const draft = readDraft()
     const tourney = readTourney()
-    const { tournamentId } = await pushToChallonge({
-      refreshToken,
-      tournamentId: sync.challongeTournamentId,
-      draft,
-      tourney,
-    })
+    let tournamentId: string
+    try {
+      const result = await pushToChallonge({
+        refreshToken,
+        tournamentId: sync.challongeTournamentId,
+        draft,
+        tourney,
+      })
+      tournamentId = result.tournamentId
+    } catch (err) {
+      if ((err as Error).message === 'CHALLONGE_CREDENTIAL_EXPIRED') deleteCredential(CRED.challongeRefresh)
+      throw err
+    }
     try {
       saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
     } catch {
@@ -51,7 +58,12 @@ export function registerIpcHandlers(): void {
     if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     if (!sync.challongeTournamentId) throw new Error('No tournament pushed yet -- push to Challonge first')
-    await startTournament({ refreshToken, tournamentId: sync.challongeTournamentId })
+    try {
+      await startTournament({ refreshToken, tournamentId: sync.challongeTournamentId })
+    } catch (err) {
+      if ((err as Error).message === 'CHALLONGE_CREDENTIAL_EXPIRED') deleteCredential(CRED.challongeRefresh)
+      throw err
+    }
     saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
   })
 
