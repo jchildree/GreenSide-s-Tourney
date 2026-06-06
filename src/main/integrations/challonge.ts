@@ -1,5 +1,5 @@
 import { CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from '../auth/oauth-config'
-import type { Draft, Tourney } from '../../shared/types'
+import type { Draft, Team, Tourney } from '../../shared/types'
 import { refreshAccessToken } from './token-refresh'
 
 const API_BASE = 'https://api.challonge.com/v2.1'
@@ -21,6 +21,40 @@ interface PushParams {
   tourney: Tourney
 }
 
+async function syncParticipants(
+  tournamentId: string,
+  teams: Team[],
+  hdrs: Record<string, string>
+): Promise<void> {
+  const listResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants.json`, {
+    headers: hdrs,
+  })
+  if (!listResp.ok) {
+    throw new Error(`Failed to fetch participants (${listResp.status}): ${await listResp.text()}`)
+  }
+  const listData = (await listResp.json()) as { data: { id: string }[] }
+
+  for (const p of listData.data ?? []) {
+    const delResp = await fetch(
+      `${API_BASE}/tournaments/${tournamentId}/participants/${p.id}.json`,
+      { method: 'DELETE', headers: hdrs }
+    )
+    if (!delResp.ok) {
+      throw new Error(`Failed to remove participant ${p.id} (${delResp.status}): ${await delResp.text()}`)
+    }
+  }
+
+  // No rollback on bulk_add failure: tournament will have no participants until next push
+  const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
+    method: 'POST',
+    headers: hdrs,
+    body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: teams.map(t => ({ name: t.name })) } } }),
+  })
+  if (!addResp.ok) {
+    throw new Error(`Failed to re-add participants (${addResp.status}): ${await addResp.text()}`)
+  }
+}
+
 export async function pushToChallonge(params: PushParams): Promise<{ tournamentId: string }> {
   const { refreshToken, tournamentId: existingId, draft, tourney } = params
   if (!CHALLONGE_CLIENT_ID || !CHALLONGE_CLIENT_SECRET) {
@@ -28,8 +62,8 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
   }
   const accessToken = await refreshAccessToken({
     tokenUrl: TOKEN_URL,
-    clientId: CHALLONGE_CLIENT_ID!,
-    clientSecret: CHALLONGE_CLIENT_SECRET!,
+    clientId: CHALLONGE_CLIENT_ID,
+    clientSecret: CHALLONGE_CLIENT_SECRET,
     refreshToken,
     serviceName: 'Challonge',
   })
@@ -70,18 +104,19 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
   }
 
   if (draft.teams.length > 0) {
-    const participants = draft.teams.map(t => ({ name: t.name }))
-    const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
-      method: 'POST',
-      headers: hdrs,
-      body: JSON.stringify({ data: { type: 'Participants', attributes: { participants } } }),
-    })
-    if (!addResp.ok) {
-      const body = await addResp.text()
-      if (!existingId) {
+    if (existingId) {
+      await syncParticipants(tournamentId, draft.teams, hdrs)
+    } else {
+      const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: draft.teams.map(t => ({ name: t.name })) } } }),
+      })
+      if (!addResp.ok) {
+        const body = await addResp.text()
         await fetch(`${API_BASE}/tournaments/${tournamentId}.json`, { method: 'DELETE', headers: hdrs })
+        throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
       }
-      throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
     }
   }
 
