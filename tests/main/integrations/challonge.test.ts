@@ -88,7 +88,35 @@ describe('pushToChallonge', () => {
         tournamentId: null,
         draft: { teams: [{ name: 'T', players: [] }], pickOrder: [] },
       })
-    ).rejects.toThrow('rollback also failed (500)')
+    ).rejects.toThrow('rollback DELETE also failed (500)')
+  })
+
+  it('throws original participants error when rollback DELETE succeeds', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { id: 'new-123' } }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        text: async () => 'too many participants',
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '',
+        json: async () => ({}),
+      })
+
+    await expect(
+      pushToChallonge({
+        ...baseParams,
+        tournamentId: null,
+        draft: { teams: [{ name: 'T', players: [] }], pickOrder: [] },
+      })
+    ).rejects.toThrow('Failed to add participants to Challonge (422)')
   })
 })
 

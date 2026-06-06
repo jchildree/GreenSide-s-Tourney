@@ -146,7 +146,7 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
       const rollbackResp = await fetch(`${API_BASE}/tournaments/${tournamentId}.json`, { method: 'DELETE', headers: hdrs })
       if (!rollbackResp.ok) {
         throw new Error(
-          `Failed to add participants (${addResp.status}): ${body} -- rollback also failed (${rollbackResp.status}), tournament ${tournamentId} may still exist on Challonge`
+          `Failed to add participants to Challonge (${addResp.status}): ${body} -- rollback DELETE also failed (${rollbackResp.status}), tournament ${tournamentId} may still exist on Challonge`
         )
       }
       throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
