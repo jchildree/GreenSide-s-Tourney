@@ -10,7 +10,7 @@ export function TeamRoster({ teams }: TeamRosterProps): JSX.Element {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
       {teams.map(team => (
         <div key={team.name} className="card" style={{ borderColor: 'rgba(200, 169, 110, 0.2)' }}>
           <h3 style={{
