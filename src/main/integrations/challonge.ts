@@ -45,13 +45,15 @@ async function syncParticipants(
   }
 
   // No rollback on bulk_add failure: tournament will have no participants until next push
-  const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
-    method: 'POST',
-    headers: hdrs,
-    body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: teams.map(t => ({ name: t.name })) } } }),
-  })
-  if (!addResp.ok) {
-    throw new Error(`Failed to re-add participants (${addResp.status}): ${await addResp.text()}`)
+  if (teams.length > 0) {
+    const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: teams.map(t => ({ name: t.name })) } } }),
+    })
+    if (!addResp.ok) {
+      throw new Error(`Failed to re-add participants (${addResp.status}): ${await addResp.text()}`)
+    }
   }
 }
 
@@ -103,20 +105,18 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
     tournamentId = createData.data.id
   }
 
-  if (draft.teams.length > 0) {
-    if (existingId) {
-      await syncParticipants(tournamentId, draft.teams, hdrs)
-    } else {
-      const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
-        method: 'POST',
-        headers: hdrs,
-        body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: draft.teams.map(t => ({ name: t.name })) } } }),
-      })
-      if (!addResp.ok) {
-        const body = await addResp.text()
-        await fetch(`${API_BASE}/tournaments/${tournamentId}.json`, { method: 'DELETE', headers: hdrs })
-        throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
-      }
+  if (existingId) {
+    await syncParticipants(tournamentId, draft.teams, hdrs)
+  } else if (draft.teams.length > 0) {
+    const addResp = await fetch(`${API_BASE}/tournaments/${tournamentId}/participants/bulk_add.json`, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({ data: { type: 'Participants', attributes: { participants: draft.teams.map(t => ({ name: t.name })) } } }),
+    })
+    if (!addResp.ok) {
+      const body = await addResp.text()
+      await fetch(`${API_BASE}/tournaments/${tournamentId}.json`, { method: 'DELETE', headers: hdrs })
+      throw new Error(`Failed to add participants to Challonge (${addResp.status}): ${body}`)
     }
   }
 

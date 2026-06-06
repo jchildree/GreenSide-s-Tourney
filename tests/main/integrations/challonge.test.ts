@@ -41,9 +41,10 @@ describe('pushToChallonge', () => {
   it('updates existing tournament and returns same ID', async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, text: async () => '', json: async () => ({}) })       // PATCH
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }), text: async () => '' }) // GET participants (empty)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }), text: async () => '' }) // GET participants (empty, no DELETEs, no bulk_add)
     const result = await pushToChallonge({ ...baseParams, tournamentId: 'existing-456' })
     expect(result).toEqual({ tournamentId: 'existing-456' })
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 
   it('throws when create API returns error', async () => {
@@ -143,5 +144,25 @@ describe('participant sync on re-push', () => {
         draft: { teams: [{ name: 'T', players: [] }], pickOrder: [] },
       })
     ).rejects.toThrow('Failed to remove participant p99 (403)')
+  })
+
+  it('clears all participants when re-pushing with empty teams', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, text: async () => '', json: async () => ({}) })  // PATCH
+      .mockResolvedValueOnce({                                                              // GET participants
+        ok: true,
+        json: async () => ({ data: [{ id: 'old1' }, { id: 'old2' }] }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({ ok: true, text: async () => '', json: async () => ({}) })  // DELETE old1
+      .mockResolvedValueOnce({ ok: true, text: async () => '', json: async () => ({}) })  // DELETE old2
+
+    const result = await pushToChallonge({
+      ...baseParams,
+      tournamentId: 'existing-456',
+      draft: { teams: [], pickOrder: [] },
+    })
+    expect(result).toEqual({ tournamentId: 'existing-456' })
+    expect(mockFetch).toHaveBeenCalledTimes(4) // PATCH + GET + 2 DELETEs, no bulk_add
   })
 })
