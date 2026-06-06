@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Sync, Draft } from '../../shared/types'
 import { PushChallongeButton } from '../components/PushChallongeButton'
+import { useAsyncAction } from '../hooks/useAsyncAction'
 
 const EMPTY_SYNC: Sync = {
   challongeLastPushed: null,
@@ -18,6 +19,12 @@ function formatTs(iso: string | null): string {
 export function Bracket(): JSX.Element {
   const [sync, setSync] = useState<Sync>(EMPTY_SYNC)
   const [draft, setDraft] = useState<Draft>({ teams: [], pickOrder: [] })
+
+  const startAction = useAsyncAction(async () => {
+    await window.api.startTournament()
+    const s = await window.api.getSync()
+    setSync(s)
+  })
 
   useEffect(() => {
     Promise.all([window.api.getSync(), window.api.getDraft()]).then(([s, d]) => {
@@ -46,6 +53,41 @@ export function Bracket(): JSX.Element {
         </div>
         <PushChallongeButton />
       </div>
+
+      {sync.challongeTournamentId && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <p className="form-label" style={{ margin: 0 }}>Tournament Start</p>
+
+          {sync.tournamentStartedAt ? (
+            <div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', margin: '0 0 0.25rem' }}>
+                Started {formatTs(sync.tournamentStartedAt)}
+              </p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: 0, fontStyle: 'italic' }}>
+                Remember to close signups in Google Forms.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={startAction.run}
+                  disabled={startAction.loading}
+                  className="btn-gold"
+                >
+                  {startAction.loading ? 'Starting...' : 'Start Tournament'}
+                </button>
+                {startAction.error && (
+                  <span className="status-err" style={{ fontSize: '0.8rem' }}>{startAction.error}</span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: 0 }}>
+                This starts the live bracket on Challonge. Remember to close signups in Google Forms.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {draft.teams.length > 0 && (
         <div className="card">
