@@ -61,6 +61,35 @@ describe('pushToChallonge', () => {
       pushToChallonge({ ...baseParams, tournamentId: 'existing-456' })
     ).rejects.toThrow('Failed to update Challonge tournament (403)')
   })
+
+  it('includes rollback status in error when DELETE also fails after bulk_add failure', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { id: 'new-123' } }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        text: async () => 'too many participants',
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'server error',
+        json: async () => ({}),
+      })
+
+    await expect(
+      pushToChallonge({
+        ...baseParams,
+        tournamentId: null,
+        draft: { teams: [{ name: 'T', players: [] }], pickOrder: [] },
+      })
+    ).rejects.toThrow('rollback also failed (500)')
+  })
 })
 
 describe('participant sync on re-push', () => {
