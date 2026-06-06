@@ -9,6 +9,11 @@ const EMPTY_SYNC: Sync = {
   googleFormLastUpdated: null,
 }
 
+function formatTs(iso: string | null): string {
+  if (!iso) return 'Never'
+  return new Date(iso).toLocaleString()
+}
+
 export function Bracket(): JSX.Element {
   const [sync, setSync] = useState<Sync>(EMPTY_SYNC)
   const [draft, setDraft] = useState<Draft>({ teams: [], pickOrder: [] })
@@ -19,11 +24,6 @@ export function Bracket(): JSX.Element {
       setDraft(d)
     })
   }, [])
-
-  function formatTs(iso: string | null): string {
-    if (!iso) return 'Never'
-    return new Date(iso).toLocaleString()
-  }
 
   return (
     <div>
