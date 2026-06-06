@@ -13,6 +13,7 @@ declare global {
       getSync: () => Promise<Sync>
       updateGoogleForm: () => Promise<void>
       pushToChallonge: () => Promise<void>
+      startTournament: () => Promise<void>
       getCredential: (service: CredentialService) => Promise<string | null>
       saveCredential: (service: CredentialService, value: string) => Promise<void>
       checkOnboarding: () => Promise<import('../shared/types').OnboardingStatus>
