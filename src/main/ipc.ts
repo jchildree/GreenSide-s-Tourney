@@ -64,7 +64,11 @@ export function registerIpcHandlers(): void {
       if ((err as Error).message === 'CHALLONGE_CREDENTIAL_EXPIRED') deleteCredential(CRED.challongeRefresh)
       throw err
     }
-    saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
+    try {
+      saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
+    } catch {
+      // Tournament started on Challonge; sync state loss is recoverable on next push
+    }
   })
 
   ipcMain.handle('update-google-form', async () => {
