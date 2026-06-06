@@ -1,7 +1,7 @@
 import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
 import { getCredential, saveCredential, deleteCredential } from './keychain'
-import { pushToChallonge } from './integrations/challonge'
+import { pushToChallonge, startTournament } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
@@ -29,7 +29,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('push-to-challonge', async () => {
     const refreshToken = getCredential(CRED.challongeRefresh)
-    if (!refreshToken) throw new Error('Challonge not connected — re-authenticate in Settings')
+    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     const draft = readDraft()
     const tourney = readTourney()
@@ -44,6 +44,15 @@ export function registerIpcHandlers(): void {
     } catch {
       // Push succeeded; sync state loss is recoverable on next push
     }
+  })
+
+  ipcMain.handle('start-tournament', async () => {
+    const refreshToken = getCredential(CRED.challongeRefresh)
+    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
+    const sync = readSync()
+    if (!sync.challongeTournamentId) throw new Error('No tournament pushed yet -- push to Challonge first')
+    await startTournament({ refreshToken, tournamentId: sync.challongeTournamentId })
+    saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
   })
 
   ipcMain.handle('update-google-form', async () => {

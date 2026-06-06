@@ -48,6 +48,7 @@ export interface Sync {
   challongeTournamentId: string | null
   googleFormId: string | null
   googleFormLastUpdated: string | null
+  tournamentStartedAt: string | null
 }
 
 export const DEFAULT_TOURNEY: Tourney = {
@@ -71,7 +72,8 @@ export const DEFAULT_SYNC: Sync = {
   challongeLastPushed: null,
   challongeTournamentId: null,
   googleFormId: null,
-  googleFormLastUpdated: null
+  googleFormLastUpdated: null,
+  tournamentStartedAt: null,
 }
 
 export interface AppConfig {

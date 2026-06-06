@@ -51,7 +51,7 @@ export function saveSignups(s: Signups): void { writeJson('signups.json', s) }
 export function readDraft(): Draft { return readJson('draft.json', DEFAULT_DRAFT) }
 export function saveDraft(d: Draft): void { writeJson('draft.json', d) }
 
-export function readSync(): Sync { return readJson('sync.json', DEFAULT_SYNC) }
+export function readSync(): Sync { return { ...DEFAULT_SYNC, ...readJson('sync.json', DEFAULT_SYNC) } }
 export function saveSync(s: Sync): void { writeJson('sync.json', s) }
 
 export function readConfig(): AppConfig { return readJson('config.json', DEFAULT_CONFIG) }

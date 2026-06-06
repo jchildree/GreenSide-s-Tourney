@@ -15,6 +15,7 @@ const api = {
 
   updateGoogleForm: (): Promise<void> => ipcRenderer.invoke('update-google-form'),
   pushToChallonge: (): Promise<void> => ipcRenderer.invoke('push-to-challonge'),
+  startTournament: (): Promise<void> => ipcRenderer.invoke('start-tournament'),
 
   getCredential: (service: CredentialService): Promise<string | null> =>
     ipcRenderer.invoke('get-credential', service),

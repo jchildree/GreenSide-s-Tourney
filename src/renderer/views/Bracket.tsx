@@ -7,6 +7,7 @@ const EMPTY_SYNC: Sync = {
   challongeTournamentId: null,
   googleFormId: null,
   googleFormLastUpdated: null,
+  tournamentStartedAt: null,
 }
 
 function formatTs(iso: string | null): string {
