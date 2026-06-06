@@ -26,6 +26,13 @@ export function Bracket(): JSX.Element {
     setSync(s)
   })
 
+  const reconnectForStart = useAsyncAction(async () => {
+    await window.api.beginChallongeOAuth()
+    startAction.clearError()
+  })
+
+  const startExpired = startAction.error.includes('CHALLONGE_CREDENTIAL_EXPIRED')
+
   useEffect(() => {
     Promise.all([window.api.getSync(), window.api.getDraft()]).then(([s, d]) => {
       setSync(s)
@@ -72,15 +79,41 @@ export function Bracket(): JSX.Element {
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={startAction.run}
-                  disabled={startAction.loading}
+                  disabled={startAction.loading || startExpired}
                   className="btn-gold"
                 >
                   {startAction.loading ? 'Starting...' : 'Start Tournament'}
                 </button>
-                {startAction.error && (
+                {startAction.error && !startExpired && (
                   <span className="status-err" style={{ fontSize: '0.8rem' }}>{startAction.error}</span>
                 )}
               </div>
+              {startExpired && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.625rem 0.75rem',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '4px',
+                }}>
+                  <span style={{ color: '#f87171', fontSize: '0.8rem', flex: 1 }}>
+                    Challonge credentials expired. Reconnect to continue.
+                  </span>
+                  <button
+                    onClick={reconnectForStart.run}
+                    disabled={reconnectForStart.loading}
+                    className="btn-gold"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', whiteSpace: 'nowrap' }}
+                  >
+                    {reconnectForStart.loading ? 'Opening browser...' : 'Reconnect Challonge'}
+                  </button>
+                </div>
+              )}
+              {reconnectForStart.error && (
+                <span className="status-err" style={{ fontSize: '0.8rem' }}>{reconnectForStart.error}</span>
+              )}
               <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: 0 }}>
                 This starts the live bracket on Challonge. Remember to close signups in Google Forms.
               </p>
