@@ -181,7 +181,10 @@ describe('startTournament', () => {
     await expect(startTournament(startParams)).resolves.toBeUndefined()
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/tournaments/tourney-123/start.json'),
-      expect.objectContaining({ method: 'POST' })
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer mock-access-token' }),
+      })
     )
   })
 
