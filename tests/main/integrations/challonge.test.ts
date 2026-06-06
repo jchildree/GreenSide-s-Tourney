@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { pushToChallonge } from '../../../src/main/integrations/challonge'
+import { pushToChallonge, startTournament } from '../../../src/main/integrations/challonge'
 
 vi.mock('../../../src/main/integrations/token-refresh', () => ({
   refreshAccessToken: vi.fn().mockResolvedValue('mock-access-token'),
@@ -164,5 +164,29 @@ describe('participant sync on re-push', () => {
     })
     expect(result).toEqual({ tournamentId: 'existing-456' })
     expect(mockFetch).toHaveBeenCalledTimes(4) // PATCH + GET + 2 DELETEs, no bulk_add
+  })
+})
+
+describe('startTournament', () => {
+  const startParams = {
+    refreshToken: 'fake-refresh',
+    tournamentId: 'tourney-123',
+  }
+
+  beforeEach(() => mockFetch.mockReset())
+  afterEach(() => vi.clearAllMocks())
+
+  it('POSTs to the start endpoint and resolves on 200', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' })
+    await expect(startTournament(startParams)).resolves.toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/tournaments/tourney-123/start.json'),
+      expect.objectContaining({ method: 'POST' })
+    )
+  })
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'Tournament already started' })
+    await expect(startTournament(startParams)).rejects.toThrow('Failed to start tournament (422)')
   })
 })

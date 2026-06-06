@@ -21,6 +21,34 @@ interface PushParams {
   tourney: Tourney
 }
 
+interface StartParams {
+  refreshToken: string
+  tournamentId: string
+}
+
+export async function startTournament(params: StartParams): Promise<void> {
+  const { refreshToken, tournamentId } = params
+  if (!CHALLONGE_CLIENT_ID || !CHALLONGE_CLIENT_SECRET) {
+    throw new Error('Challonge OAuth credentials not configured in oauth-config.ts')
+  }
+  const accessToken = await refreshAccessToken({
+    tokenUrl: TOKEN_URL,
+    clientId: CHALLONGE_CLIENT_ID,
+    clientSecret: CHALLONGE_CLIENT_SECRET,
+    refreshToken,
+    serviceName: 'Challonge',
+  })
+  const hdrs = authHeaders(accessToken)
+  const resp = await fetch(`${API_BASE}/tournaments/${tournamentId}/start.json`, {
+    method: 'POST',
+    headers: hdrs,
+  })
+  if (!resp.ok) {
+    const body = await resp.text()
+    throw new Error(`Failed to start tournament (${resp.status}): ${body}`)
+  }
+}
+
 async function syncParticipants(
   tournamentId: string,
   teams: Team[],
