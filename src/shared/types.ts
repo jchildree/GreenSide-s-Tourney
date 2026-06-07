@@ -118,5 +118,21 @@ export const DEFAULT_DRAFT_SESSION: DraftSession = {
   pickQueue: [],
 }
 
+export interface ChallongeMatch {
+  id: string
+  state: 'open' | 'complete' | 'pending'
+  round: number
+  player1Id: string | null
+  player2Id: string | null
+  winnerId: string | null
+  scoresCsv: string | null
+  suggestedPlayOrder: number | null
+}
+
+export interface ChallongeParticipant {
+  id: string
+  name: string
+}
+
 export const CHALLONGE_CREDENTIAL_EXPIRED = 'CHALLONGE_CREDENTIAL_EXPIRED'
 export const GOOGLE_CREDENTIAL_EXPIRED = 'GOOGLE_CREDENTIAL_EXPIRED'
