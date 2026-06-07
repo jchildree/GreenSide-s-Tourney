@@ -17,6 +17,7 @@ export interface Tourney {
   maxPlayers: number
   teamNames: string[]     // team slot names for draft
   teamSize: number        // players per team
+  streamLink: string
 }
 
 export interface Player {
@@ -61,6 +62,7 @@ export const DEFAULT_TOURNEY: Tourney = {
   maxPlayers: 32,
   teamNames: [],
   teamSize: 4,
+  streamLink: '',
 }
 
 export const DEFAULT_DRAFT: Draft = {

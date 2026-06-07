@@ -21,6 +21,7 @@ const baseParams = {
     maxPlayers: 32,
     teamNames: [],
     teamSize: 4,
+    streamLink: '',
   },
 }
 
