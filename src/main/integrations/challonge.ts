@@ -105,6 +105,7 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
   }
   if (tourney.game) attrs.game_name = tourney.game
   if (tourney.dateTime) attrs.starts_at = tourney.dateTime
+  if (tourney.streamLink) attrs.stream_link = tourney.streamLink
 
   let tournamentId: string
 

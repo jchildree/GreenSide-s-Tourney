@@ -225,6 +225,41 @@ describe('participant sync on re-push', () => {
   })
 })
 
+describe('pushToChallonge stream_link', () => {
+  beforeEach(() => mockFetch.mockReset())
+  afterEach(() => vi.clearAllMocks())
+
+  it('includes stream_link in attrs when streamLink is set', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: 'new-123' } }),
+      text: async () => '',
+    })
+    await pushToChallonge({
+      ...baseParams,
+      tournamentId: null,
+      tourney: { ...baseParams.tourney, streamLink: 'https://twitch.tv/example' },
+    })
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.data.attributes.stream_link).toBe('https://twitch.tv/example')
+  })
+
+  it('omits stream_link from attrs when streamLink is empty', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: 'new-123' } }),
+      text: async () => '',
+    })
+    await pushToChallonge({
+      ...baseParams,
+      tournamentId: null,
+      tourney: { ...baseParams.tourney, streamLink: '' },
+    })
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.data.attributes.stream_link).toBeUndefined()
+  })
+})
+
 describe('startTournament', () => {
   const startParams = {
     refreshToken: 'fake-refresh',
