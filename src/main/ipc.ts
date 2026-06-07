@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
-import { getCredential, saveCredential, deleteCredential } from './keychain'
+import { getCredential, saveCredential } from './keychain'
 import { pushToChallonge, startTournament } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
