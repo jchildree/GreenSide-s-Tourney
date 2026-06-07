@@ -160,6 +160,17 @@ export function Setup(): JSX.Element {
           {fieldRow('Max Players', 'maxPlayers', d => textInput('maxPlayers', 'number', d))}
         </div>
 
+        <div>
+          <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem' }}>Stream Link (optional)</label>
+          <input
+            type="url"
+            value={tourney.streamLink ?? ''}
+            onChange={e => setTourney(t => ({ ...t, streamLink: e.target.value }))}
+            className="form-input"
+            style={{ width: '100%' }}
+          />
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: '0.5rem' }}>
           <button type="submit" className="btn-gold">Save Setup</button>
           {status && <span className="status-ok">{status}</span>}

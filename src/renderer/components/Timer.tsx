@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import confetti from 'canvas-confetti'
 
 interface TimerProps {
@@ -83,22 +83,92 @@ export function Timer({
     }
   }, [isExpired, onExpire])
 
+  const [editing, setEditing] = useState(false)
+  const [editVal, setEditVal] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const cancelRef = useRef(false)
+
+  const parseTime = (s: string): number | null => {
+    const colonMatch = s.match(/^(\d+):(\d{1,2})$/)
+    if (colonMatch) {
+      const parsed = parseInt(colonMatch[1], 10) * 60 + parseInt(colonMatch[2], 10)
+      return Math.min(3600, Math.max(10, parsed))
+    }
+    const intMatch = s.match(/^\d+$/)
+    if (intMatch) {
+      return Math.min(3600, Math.max(10, parseInt(s, 10)))
+    }
+    return null
+  }
+
+  const enterEdit = (): void => {
+    if (running) onToggle()
+    setEditVal(format(remainingSeconds))
+    setEditing(true)
+  }
+
+  const commitEdit = (): void => {
+    if (cancelRef.current) { cancelRef.current = false; return }
+    const parsed = parseTime(editVal)
+    if (parsed !== null) onDurationChange(parsed)
+    setEditing(false)
+  }
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editing])
+
   const clampDuration = (v: number): number => Math.min(3600, Math.max(10, v))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end' }}>
-      {/* Countdown display */}
-      <span style={{
-        fontFamily: 'monospace',
-        fontSize: '3rem',
-        fontWeight: 700,
-        fontVariantNumeric: 'tabular-nums',
-        letterSpacing: '-0.02em',
-        color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
-        transition: 'color 300ms ease',
-      }}>
-        {format(remainingSeconds)}
-      </span>
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editVal}
+          onChange={e => setEditVal(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') commitEdit()
+            if (e.key === 'Escape') { cancelRef.current = true; setEditing(false) }
+          }}
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '3rem',
+            fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.02em',
+            color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
+            border: 'none',
+            background: 'transparent',
+            outline: 'none',
+            textAlign: 'center',
+            width: '5ch',
+            padding: 0,
+          }}
+        />
+      ) : (
+        <span
+          title="Click to edit"
+          onClick={enterEdit}
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '3rem',
+            fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.02em',
+            color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
+            transition: 'color 300ms ease',
+            cursor: 'pointer',
+          }}
+        >
+          {format(remainingSeconds)}
+        </span>
+      )}
 
       {/* Duration controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

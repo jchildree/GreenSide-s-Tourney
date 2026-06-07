@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Draft as DraftState, Player, PickQueueEntry, Signups, Tourney } from '../../shared/types'
+import type { Draft as DraftState, DraftPick, Player, PickQueueEntry, Signups, Tourney } from '../../shared/types'
+import { DEFAULT_TOURNEY } from '../../shared/types'
 import { generatePickQueue } from '../utils/pickOrder'
 
 interface UseDraftReturn {
   draft: DraftState
+  effectiveTeams: { name: string; players: string[] }[]
   signups: Signups
   tourney: Tourney | null
   timerDuration: number
@@ -16,6 +18,62 @@ interface UseDraftReturn {
   setRemainingSeconds: (s: number) => void
   setTimerRunning: React.Dispatch<React.SetStateAction<boolean>>
   onPick: (playerName: string) => void
+  onAutoFill: () => void
+  onSave: () => void
+  resetDraft: () => void
+}
+
+export function buildPicks(pickOrder: string[], queue: PickQueueEntry[]): DraftPick[] {
+  return pickOrder.map((playerName, i) => ({
+    teamName: queue[i]?.teamName ?? '',
+    playerName,
+    pickNumber: i + 1,
+  }))
+}
+
+export function computePick(
+  draft: DraftState,
+  effectiveTeams: { name: string; players: string[] }[],
+  pickQueue: PickQueueEntry[],
+  currentPickIndex: number,
+  playerName: string,
+): { newDraft: DraftState; picks: DraftPick[] } {
+  const entry = pickQueue[currentPickIndex]
+  const base = draft.teams.length > 0 ? draft.teams : effectiveTeams
+  const newPickOrder = [...draft.pickOrder, playerName]
+  const newTeams = entry
+    ? base.map(t => t.name === entry.teamName ? { ...t, players: [...t.players, playerName] } : t)
+    : base
+  return {
+    newDraft: { ...draft, pickOrder: newPickOrder, teams: newTeams },
+    picks: buildPicks(newPickOrder, pickQueue),
+  }
+}
+
+export function computeAutoFill(
+  draft: DraftState,
+  effectiveTeams: { name: string; players: string[] }[],
+  pickQueue: PickQueueEntry[],
+  currentPickIndex: number,
+  shuffledPool: Player[],
+): { newDraft: DraftState; picks: DraftPick[]; newPickIndex: number } {
+  const remaining = pickQueue.slice(currentPickIndex)
+  const pairs = remaining
+    .map((entry, offset) => ({ entry, player: shuffledPool[offset] }))
+    .filter(p => p.player !== undefined)
+  const base = draft.teams.length > 0 ? draft.teams : effectiveTeams
+  const newPickOrder = [...draft.pickOrder, ...pairs.map(p => p.player.name)]
+  const newTeams = base.map(t => {
+    const additions = pairs
+      .filter(p => p.entry.teamName === t.name)
+      .map(p => p.player.name)
+    return additions.length > 0 ? { ...t, players: [...t.players, ...additions] } : t
+  })
+  return {
+    newDraft: { ...draft, pickOrder: newPickOrder, teams: newTeams },
+    picks: buildPicks(newPickOrder, pickQueue),
+    newPickIndex: currentPickIndex + pairs.length,
+  }
 }
 
 export function useDraft(): UseDraftReturn {
@@ -26,6 +84,9 @@ export function useDraft(): UseDraftReturn {
   const [remainingSeconds, setRemainingSeconds] = useState(60)
   const [timerRunning, setTimerRunning] = useState(false)
   const [currentPickIndex, setCurrentPickIndex] = useState(0)
+
+  const draftRef = useRef(draft)
+  draftRef.current = draft
 
   const timerDurationRef = useRef(timerDuration)
   timerDurationRef.current = timerDuration
@@ -45,18 +106,25 @@ export function useDraft(): UseDraftReturn {
       setTimerDuration(session.timerDuration)
       setRemainingSeconds(session.remainingSeconds)
       setCurrentPickIndex(session.currentPickIndex)
-      setTourney(t)
+      setTourney({ ...DEFAULT_TOURNEY, ...t })
     })
   }, [])
 
+  const effectiveTeams = useMemo(() => {
+    if (draft.teams.length > 0) return draft.teams
+    const names = tourney?.teamNames ?? []
+    return names.map(name => ({ name, players: [] }))
+  }, [draft.teams, tourney?.teamNames])
+
+  const effectiveTeamsRef = useRef(effectiveTeams)
+  effectiveTeamsRef.current = effectiveTeams
+
   const pickQueue = useMemo(() => {
-    if (!tourney || !draft.teams.length) return []
-    return generatePickQueue(
-      draft.teams.map(t => t.name),
-      (tourney.draftStyle === 'random' ? 'snake' : tourney.draftStyle) as 'snake' | 'linear',
-      Math.ceil(signups.length / Math.max(draft.teams.length, 1))
-    )
-  }, [tourney, draft.teams, signups.length])
+    if (!tourney || !effectiveTeams.length) return []
+    const style = tourney.draftStyle === 'random' ? 'snake' : tourney.draftStyle as 'snake' | 'linear'
+    const rounds = tourney.teamSize ?? 4
+    return generatePickQueue(effectiveTeams.map(t => t.name), style, rounds)
+  }, [tourney, effectiveTeams])
 
   const pickQueueRef = useRef(pickQueue)
   pickQueueRef.current = pickQueue
@@ -80,20 +148,16 @@ export function useDraft(): UseDraftReturn {
   }
 
   function onPick(playerName: string): void {
-    const idx = currentPickIndexRef.current
-    const entry = pickQueueRef.current[idx]
-    setDraft(d => ({
-      ...d,
-      pickOrder: [...d.pickOrder, playerName],
-      teams: entry
-        ? d.teams.map(t =>
-            t.name === entry.teamName
-              ? { ...t, players: [...t.players, playerName] }
-              : t
-          )
-        : d.teams,
-    }))
-    if (entry) advancePick()
+    const { newDraft, picks } = computePick(
+      draftRef.current,
+      effectiveTeamsRef.current,
+      pickQueueRef.current,
+      currentPickIndexRef.current,
+      playerName,
+    )
+    setDraft(newDraft)
+    window.api.saveDraft(picks)
+    if (pickQueueRef.current[currentPickIndexRef.current]) advancePick()
   }
 
   const unassigned = useMemo(() => {
@@ -111,8 +175,50 @@ export function useDraft(): UseDraftReturn {
     })
   }, [signups, draft.pickOrder])
 
+  const unassignedRef = useRef(unassigned)
+  unassignedRef.current = unassigned
+
+  function onAutoFill(): void {
+    const pool = [...unassignedRef.current]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    const { newDraft, picks, newPickIndex } = computeAutoFill(
+      draftRef.current,
+      effectiveTeamsRef.current,
+      pickQueueRef.current,
+      currentPickIndexRef.current,
+      pool,
+    )
+    setDraft(newDraft)
+    window.api.saveDraft(picks)
+    setCurrentPickIndex(newPickIndex)
+    setTimerRunning(false)
+  }
+
+  function onSave(): void {
+    window.api.saveDraft(buildPicks(draftRef.current.pickOrder, pickQueueRef.current))
+  }
+
+  function resetDraft(): void {
+    const emptyDraft: DraftState = { teams: [], pickOrder: [] }
+    setDraft(emptyDraft)
+    setCurrentPickIndex(0)
+    setRemainingSeconds(timerDurationRef.current)
+    setTimerRunning(false)
+    window.api.saveDraft([])
+    window.api.saveDraftSession({
+      timerDuration: timerDurationRef.current,
+      remainingSeconds: timerDurationRef.current,
+      currentPickIndex: 0,
+      pickQueue: pickQueueRef.current,
+    })
+  }
+
   return {
     draft,
+    effectiveTeams,
     signups,
     tourney,
     timerDuration,
@@ -125,5 +231,8 @@ export function useDraft(): UseDraftReturn {
     setRemainingSeconds,
     setTimerRunning,
     onPick,
+    onAutoFill,
+    onSave,
+    resetDraft,
   }
 }

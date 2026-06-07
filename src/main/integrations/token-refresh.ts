@@ -19,6 +19,15 @@ export async function refreshAccessToken(opts: TokenRefreshOpts): Promise<string
   })
   if (!resp.ok) {
     const body = await resp.text()
+    let parsedError: string | undefined
+    try {
+      parsedError = (JSON.parse(body) as { error?: string }).error
+    } catch {
+      // body is not valid JSON
+    }
+    if (parsedError === 'invalid_grant') {
+      throw new Error(`${opts.serviceName.toUpperCase()}_CREDENTIAL_EXPIRED`)
+    }
     throw new Error(`${opts.serviceName} token refresh failed (${resp.status}): ${body}`)
   }
   const data = (await resp.json()) as { access_token: string }

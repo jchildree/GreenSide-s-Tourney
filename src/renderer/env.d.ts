@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant } from '../shared/types'
 
 declare global {
   interface Window {
@@ -13,12 +13,20 @@ declare global {
       getSync: () => Promise<Sync>
       updateGoogleForm: () => Promise<void>
       pushToChallonge: () => Promise<void>
+      startTournament: () => Promise<void>
       getCredential: (service: CredentialService) => Promise<string | null>
       saveCredential: (service: CredentialService, value: string) => Promise<void>
       checkOnboarding: () => Promise<import('../shared/types').OnboardingStatus>
       beginGoogleOAuth: () => Promise<void>
       beginChallongeOAuth: () => Promise<void>
       setGoogleFormId: (formId: string) => Promise<void>
+      getDraftSession: () => Promise<DraftSession>
+      saveDraftSession: (s: DraftSession) => Promise<void>
+      openExternal: (url: string) => Promise<void>
+      disconnectGoogle: () => Promise<void>
+      disconnectChallonge: () => Promise<void>
+      getMatches: () => Promise<{ matches: ChallongeMatch[]; participants: ChallongeParticipant[] }>
+      updateMatch: (matchId: string, scoresCsv: string, winnerId: string) => Promise<void>
     }
   }
 }

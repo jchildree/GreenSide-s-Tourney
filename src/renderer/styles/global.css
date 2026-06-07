@@ -21,10 +21,10 @@
 /* Explicit :root vars -- @theme alone doesn't emit them through electron-vite */
 :root {
   --color-bg:      #050f08;
-  --color-surface: #091a0d;
-  --color-card:    #0e2415;
-  --color-border:  #1a4028;
-  --color-primary: #22c55e;
+  --color-surface: #0b1f0f;
+  --color-card:    #0f2917;
+  --color-border:  #1d492d;
+  --color-primary: #1ebb57;
   --color-silver:  #8fb4a0;
   --color-text:    #eaeaea;
   --color-muted:   #7a9488;

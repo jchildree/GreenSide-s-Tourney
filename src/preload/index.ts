@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant } from '../shared/types'
 
 const api = {
   getTourney: (): Promise<Tourney> => ipcRenderer.invoke('get-tourney'),
@@ -15,6 +15,7 @@ const api = {
 
   updateGoogleForm: (): Promise<void> => ipcRenderer.invoke('update-google-form'),
   pushToChallonge: (): Promise<void> => ipcRenderer.invoke('push-to-challonge'),
+  startTournament: (): Promise<void> => ipcRenderer.invoke('start-tournament'),
 
   getCredential: (service: CredentialService): Promise<string | null> =>
     ipcRenderer.invoke('get-credential', service),
@@ -35,6 +36,15 @@ const api = {
 
   getDraftSession: (): Promise<DraftSession> => ipcRenderer.invoke('get-draft-session'),
   saveDraftSession: (s: DraftSession): Promise<void> => ipcRenderer.invoke('save-draft-session', s),
+
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
+
+  disconnectGoogle: (): Promise<void> => ipcRenderer.invoke('disconnect-google'),
+  disconnectChallonge: (): Promise<void> => ipcRenderer.invoke('disconnect-challonge'),
+  getMatches: (): Promise<{ matches: ChallongeMatch[]; participants: ChallongeParticipant[] }> =>
+    ipcRenderer.invoke('get-matches'),
+  updateMatch: (matchId: string, scoresCsv: string, winnerId: string): Promise<void> =>
+    ipcRenderer.invoke('update-match', matchId, scoresCsv, winnerId),
 }
 
 contextBridge.exposeInMainWorld('api', api)

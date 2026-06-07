@@ -1,6 +1,12 @@
 export type DraftStyle = 'random' | 'snake' | 'manual'
 export type CredentialService = 'google' | 'challonge' | 'challonge-refresh'
 
+export const CRED = {
+  google: 'google',
+  challonge: 'challonge',
+  challongeRefresh: 'challonge-refresh',
+} as const satisfies Record<string, CredentialService>
+
 export interface Tourney {
   name: string
   game: string
@@ -9,7 +15,9 @@ export interface Tourney {
   draftStyle: DraftStyle
   minPlayers: number
   maxPlayers: number
+  teamNames: string[]     // team slot names for draft
   teamSize: number        // players per team, default 4
+  streamLink: string
   enabledFields: Partial<Record<'name' | 'game' | 'dateTime' | 'signupDeadline' | 'draftStyle' | 'minPlayers' | 'maxPlayers' | 'teamSize', boolean>>
 }
 
@@ -42,6 +50,7 @@ export interface Sync {
   challongeTournamentId: string | null
   googleFormId: string | null
   googleFormLastUpdated: string | null
+  tournamentStartedAt: string | null
 }
 
 export const DEFAULT_TOURNEY: Tourney = {
@@ -52,7 +61,9 @@ export const DEFAULT_TOURNEY: Tourney = {
   draftStyle: 'random',
   minPlayers: 2,
   maxPlayers: 32,
+  teamNames: [],
   teamSize: 4,
+  streamLink: '',
   enabledFields: {}
 }
 
@@ -65,7 +76,8 @@ export const DEFAULT_SYNC: Sync = {
   challongeLastPushed: null,
   challongeTournamentId: null,
   googleFormId: null,
-  googleFormLastUpdated: null
+  googleFormLastUpdated: null,
+  tournamentStartedAt: null,
 }
 
 export interface AppConfig {
@@ -107,3 +119,22 @@ export const DEFAULT_DRAFT_SESSION: DraftSession = {
   currentPickIndex: 0,
   pickQueue: [],
 }
+
+export interface ChallongeMatch {
+  id: string
+  state: 'open' | 'complete' | 'pending'
+  round: number
+  player1Id: string | null
+  player2Id: string | null
+  winnerId: string | null
+  scoresCsv: string | null
+  suggestedPlayOrder: number | null
+}
+
+export interface ChallongeParticipant {
+  id: string
+  name: string
+}
+
+export const CHALLONGE_CREDENTIAL_EXPIRED = 'CHALLONGE_CREDENTIAL_EXPIRED'
+export const GOOGLE_CREDENTIAL_EXPIRED = 'GOOGLE_CREDENTIAL_EXPIRED'
