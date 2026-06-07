@@ -24,7 +24,8 @@ function MatchRow({
     const n1 = parseInt(p1Score, 10)
     const n2 = parseInt(p2Score, 10)
     if (isNaN(n1) || isNaN(n2)) throw new Error('Enter valid scores')
-    if (n1 === n2) throw new Error('Scores are tied -- enter a different result or use Challonge directly')
+    if (n1 < 0 || n2 < 0) throw new Error('Scores must be non-negative')
+    if (n1 === n2) throw new Error('Scores are tied -- enter different scores to declare a winner')
     const winnerId = n1 > n2 ? match.player1Id : match.player2Id
     if (!winnerId) throw new Error('Winner participant ID missing')
     await window.api.updateMatch(match.id, `${n1}-${n2}`, winnerId)
