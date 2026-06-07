@@ -118,6 +118,8 @@ export function Setup(): JSX.Element {
           {field('Max Players', 'maxPlayers', 'number')}
         </div>
 
+        {field('Stream Link (optional)', 'streamLink', 'url')}
+
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.25rem' }}>
             <label className="form-label" style={{ display: 'block' }}>
