@@ -1,6 +1,7 @@
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from '../auth/oauth-config'
 import type { Tourney, Signups, Player } from '../../shared/types'
 import { refreshAccessToken } from './token-refresh'
+import { findNameQuestion, findDiscordQuestion } from './google-form-utils'
 
 const FORMS_BASE = 'https://forms.googleapis.com/v1/forms'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -105,14 +106,8 @@ export async function fetchSignups(params: FetchSignupsParams): Promise<Signups>
       title: (item.title ?? '').toLowerCase(),
     }))
 
-  const nameQ =
-    questions.find(q => q.title === 'name' || q.title === 'player name' || q.title === 'your name') ??
-    questions.find(q => q.title.startsWith('name') && !q.title.includes('game') && !q.title.includes('team')) ??
-    questions.find(q => q.title.includes('name') && !q.title.includes('game') && !q.title.includes('team'))
-
-  const discordQ =
-    questions.find(q => q.title === 'discord' || q.title === 'discord handle' || q.title === 'discord username' || q.title === 'discord tag') ??
-    questions.find(q => q.title.includes('discord'))
+  const nameQ = findNameQuestion(questions)
+  const discordQ = findDiscordQuestion(questions)
 
   const responsesResp = await fetch(`${FORMS_BASE}/${encodeURIComponent(formId)}/responses`, {
     headers: { Authorization: `Bearer ${accessToken}` },
