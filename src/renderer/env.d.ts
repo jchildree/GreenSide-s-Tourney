@@ -23,6 +23,8 @@ declare global {
       getDraftSession: () => Promise<DraftSession>
       saveDraftSession: (s: DraftSession) => Promise<void>
       openExternal: (url: string) => Promise<void>
+      disconnectGoogle: () => Promise<void>
+      disconnectChallonge: () => Promise<void>
     }
   }
 }

@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
-import { getCredential, saveCredential } from './keychain'
+import { getCredential, saveCredential, deleteCredential } from './keychain'
 import { pushToChallonge, startTournament } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
@@ -116,4 +116,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))
 
   ipcMain.handle('open-external', (_e, url: string) => shell.openExternal(url))
+
+  ipcMain.handle('disconnect-google', () => {
+    deleteCredential(CRED.google)
+  })
+
+  ipcMain.handle('disconnect-challonge', () => {
+    deleteCredential(CRED.challonge)
+    deleteCredential(CRED.challongeRefresh)
+  })
 }

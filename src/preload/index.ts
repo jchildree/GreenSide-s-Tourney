@@ -38,6 +38,9 @@ const api = {
   saveDraftSession: (s: DraftSession): Promise<void> => ipcRenderer.invoke('save-draft-session', s),
 
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
+
+  disconnectGoogle: (): Promise<void> => ipcRenderer.invoke('disconnect-google'),
+  disconnectChallonge: (): Promise<void> => ipcRenderer.invoke('disconnect-challonge'),
 }
 
 contextBridge.exposeInMainWorld('api', api)
