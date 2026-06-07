@@ -3,15 +3,17 @@ import { Setup } from './views/Setup'
 import { Draft } from './views/Draft'
 import { Bracket } from './views/Bracket'
 import { Control } from './views/Control'
+import { Settings } from './views/Settings'
 import { Onboarding } from './views/Onboarding'
 
-type View = 'setup' | 'draft' | 'bracket' | 'control'
+type View = 'setup' | 'draft' | 'bracket' | 'control' | 'settings'
 
 const NAV: { id: View; label: string }[] = [
   { id: 'setup',   label: 'Setup'   },
   { id: 'draft',   label: 'Draft'   },
   { id: 'bracket', label: 'Bracket' },
   { id: 'control', label: 'Control' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 export function App(): JSX.Element {
@@ -141,6 +143,7 @@ export function App(): JSX.Element {
           {view === 'draft'   && <Draft />}
           {view === 'bracket' && <Bracket />}
           {view === 'control' && <Control />}
+          {view === 'settings' && <Settings />}
         </div>
       </main>
     </div>
