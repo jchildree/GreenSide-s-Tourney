@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 import { PushChallongeButton } from '../components/PushChallongeButton'
-import type { Sync, Signups } from '../../shared/types'
+import { GOOGLE_CREDENTIAL_EXPIRED, type Sync, type Signups } from '../../shared/types'
 
 function formatTs(iso: string | null): string {
   if (!iso) return 'Never'
@@ -55,7 +55,7 @@ export function Control(): JSX.Element {
     if (errorMsg) setActionError(errorMsg)
   }, [updateForm.error, fetchSignups.error])
 
-  const googleExpired = actionError.includes('GOOGLE_CREDENTIAL_EXPIRED')
+  const googleExpired = actionError.includes(GOOGLE_CREDENTIAL_EXPIRED)
 
   const reconnectGoogle = useAsyncAction(async () => {
     await window.api.beginGoogleOAuth()

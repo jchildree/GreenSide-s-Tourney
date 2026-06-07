@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAsyncAction } from '../hooks/useAsyncAction'
+import { CHALLONGE_CREDENTIAL_EXPIRED } from '../../shared/types'
 
 export function PushChallongeButton(): JSX.Element {
   const [success, setSuccess] = useState(false)
@@ -20,7 +21,7 @@ export function PushChallongeButton(): JSX.Element {
     clearError()
   })
 
-  const challongeExpired = error.includes('CHALLONGE_CREDENTIAL_EXPIRED')
+  const challongeExpired = error.includes(CHALLONGE_CREDENTIAL_EXPIRED)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Sync, Draft } from '../../shared/types'
+import { CHALLONGE_CREDENTIAL_EXPIRED, type Sync, type Draft } from '../../shared/types'
 import { PushChallongeButton } from '../components/PushChallongeButton'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 
@@ -31,7 +31,7 @@ export function Bracket(): JSX.Element {
     startAction.clearError()
   })
 
-  const startExpired = startAction.error.includes('CHALLONGE_CREDENTIAL_EXPIRED')
+  const startExpired = startAction.error.includes(CHALLONGE_CREDENTIAL_EXPIRED)
 
   useEffect(() => {
     Promise.all([window.api.getSync(), window.api.getDraft()]).then(([s, d]) => {

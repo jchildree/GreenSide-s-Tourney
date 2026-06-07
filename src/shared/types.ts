@@ -115,3 +115,6 @@ export const DEFAULT_DRAFT_SESSION: DraftSession = {
   currentPickIndex: 0,
   pickQueue: [],
 }
+
+export const CHALLONGE_CREDENTIAL_EXPIRED = 'CHALLONGE_CREDENTIAL_EXPIRED'
+export const GOOGLE_CREDENTIAL_EXPIRED = 'GOOGLE_CREDENTIAL_EXPIRED'

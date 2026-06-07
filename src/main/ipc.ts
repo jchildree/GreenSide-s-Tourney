@@ -7,7 +7,8 @@ import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
 import type { Tourney, DraftPick, OnboardingStatus, DraftSession } from '../shared/types'
-import { CRED } from '../shared/types'
+import { CRED, CHALLONGE_CREDENTIAL_EXPIRED, GOOGLE_CREDENTIAL_EXPIRED } from '../shared/types'
+import { withCredentialGuard } from './credential-guard'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('get-tourney', () => readTourney())
@@ -33,21 +34,11 @@ export function registerIpcHandlers(): void {
     const sync = readSync()
     const draft = readDraft()
     const tourney = readTourney()
-    let tournamentId: string
+    const result = await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
+      pushToChallonge({ refreshToken, tournamentId: sync.challongeTournamentId, draft, tourney })
+    )
     try {
-      const result = await pushToChallonge({
-        refreshToken,
-        tournamentId: sync.challongeTournamentId,
-        draft,
-        tourney,
-      })
-      tournamentId = result.tournamentId
-    } catch (err) {
-      if ((err as Error).message === 'CHALLONGE_CREDENTIAL_EXPIRED') deleteCredential(CRED.challongeRefresh)
-      throw err
-    }
-    try {
-      saveSync({ ...sync, challongeTournamentId: tournamentId, challongeLastPushed: new Date().toISOString() })
+      saveSync({ ...sync, challongeTournamentId: result.tournamentId, challongeLastPushed: new Date().toISOString() })
     } catch {
       // Push succeeded; sync state loss is recoverable on next push
     }
@@ -58,12 +49,9 @@ export function registerIpcHandlers(): void {
     if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     if (!sync.challongeTournamentId) throw new Error('No tournament pushed yet -- push to Challonge first')
-    try {
-      await startTournament({ refreshToken, tournamentId: sync.challongeTournamentId })
-    } catch (err) {
-      if ((err as Error).message === 'CHALLONGE_CREDENTIAL_EXPIRED') deleteCredential(CRED.challongeRefresh)
-      throw err
-    }
+    await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
+      startTournament({ refreshToken, tournamentId: sync.challongeTournamentId! })
+    )
     try {
       saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
     } catch {
@@ -73,16 +61,13 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('update-google-form', async () => {
     const refreshToken = getCredential(CRED.google)
-    if (!refreshToken) throw new Error('GOOGLE_CREDENTIAL_EXPIRED')
+    if (!refreshToken) throw new Error(GOOGLE_CREDENTIAL_EXPIRED)
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form ID not set -- paste it in the Control tab first')
     const tourney = readTourney()
-    try {
-      await updateGoogleForm({ refreshToken, formId: sync.googleFormId, tourney })
-    } catch (err) {
-      if ((err as Error).message === 'GOOGLE_CREDENTIAL_EXPIRED') deleteCredential(CRED.google)
-      throw err
-    }
+    await withCredentialGuard(CRED.google, GOOGLE_CREDENTIAL_EXPIRED, () =>
+      updateGoogleForm({ refreshToken, formId: sync.googleFormId!, tourney })
+    )
     saveSync({ ...sync, googleFormLastUpdated: new Date().toISOString() })
   })
 
@@ -93,17 +78,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('fetch-signups', async () => {
     const refreshToken = getCredential(CRED.google)
-    if (!refreshToken) throw new Error('GOOGLE_CREDENTIAL_EXPIRED')
+    if (!refreshToken) throw new Error(GOOGLE_CREDENTIAL_EXPIRED)
     const sync = readSync()
     if (!sync.googleFormId) throw new Error('Google Form not configured')
-    try {
-      const signups = await fetchSignups({ refreshToken, formId: sync.googleFormId })
-      saveSignups(signups)
-      return signups
-    } catch (err) {
-      if ((err as Error).message === 'GOOGLE_CREDENTIAL_EXPIRED') deleteCredential(CRED.google)
-      throw err
-    }
+    const signups = await withCredentialGuard(CRED.google, GOOGLE_CREDENTIAL_EXPIRED, () =>
+      fetchSignups({ refreshToken, formId: sync.googleFormId! })
+    )
+    saveSignups(signups)
+    return signups
   })
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
