@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { pushToChallonge, startTournament } from '../../../src/main/integrations/challonge'
+import { pushToChallonge, startTournament, fetchMatches, updateMatch } from '../../../src/main/integrations/challonge'
 
 vi.mock('../../../src/main/integrations/token-refresh', () => ({
   refreshAccessToken: vi.fn().mockResolvedValue('mock-access-token'),
@@ -284,5 +284,100 @@ describe('startTournament', () => {
   it('throws on non-ok response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'Tournament already started' })
     await expect(startTournament(startParams)).rejects.toThrow('Failed to start tournament (422)')
+  })
+})
+
+describe('fetchMatches', () => {
+  beforeEach(() => mockFetch.mockReset())
+  afterEach(() => vi.clearAllMocks())
+
+  it('fetches and maps matches and participants', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [{
+            id: 'match-1',
+            attributes: {
+              state: 'open',
+              round: 1,
+              scores_csv: null,
+              winner_id: null,
+              player1_id: 'p1',
+              player2_id: 'p2',
+              suggested_play_order: 1,
+            },
+          }],
+        }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            { id: 'p1', attributes: { name: 'Team Alpha' } },
+            { id: 'p2', attributes: { name: 'Team Beta' } },
+          ],
+        }),
+        text: async () => '',
+      })
+    const result = await fetchMatches({ refreshToken: 'fake', tournamentId: 'tid' })
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]).toEqual({
+      id: 'match-1',
+      state: 'open',
+      round: 1,
+      player1Id: 'p1',
+      player2Id: 'p2',
+      winnerId: null,
+      scoresCsv: null,
+      suggestedPlayOrder: 1,
+    })
+    expect(result.participants).toEqual([
+      { id: 'p1', name: 'Team Alpha' },
+      { id: 'p2', name: 'Team Beta' },
+    ])
+  })
+
+  it('throws when matches request fails', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'bad request', json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }), text: async () => '' })
+    await expect(fetchMatches({ refreshToken: 'fake', tournamentId: 'tid' }))
+      .rejects.toThrow('Failed to fetch matches (422)')
+  })
+
+  it('throws when participants request fails', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }), text: async () => '' })
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => 'server error', json: async () => ({}) })
+    await expect(fetchMatches({ refreshToken: 'fake', tournamentId: 'tid' }))
+      .rejects.toThrow('Failed to fetch participants (500)')
+  })
+})
+
+describe('updateMatch', () => {
+  beforeEach(() => mockFetch.mockReset())
+  afterEach(() => vi.clearAllMocks())
+
+  it('PUTs scores_csv and winner_id to the match endpoint', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' })
+    await expect(
+      updateMatch({ refreshToken: 'fake', tournamentId: 'tid', matchId: 'mid', scoresCsv: '3-1', winnerId: 'p1' })
+    ).resolves.toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/matches/mid.json'),
+      expect.objectContaining({ method: 'PUT' })
+    )
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.data.attributes.scores_csv).toBe('3-1')
+    expect(body.data.attributes.winner_id).toBe('p1')
+  })
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'invalid scores' })
+    await expect(
+      updateMatch({ refreshToken: 'fake', tournamentId: 'tid', matchId: 'mid', scoresCsv: '3-1', winnerId: 'p1' })
+    ).rejects.toThrow('Failed to update match (422)')
   })
 })
