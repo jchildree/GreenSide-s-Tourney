@@ -1,20 +1,12 @@
-appId: com.tourney.app
-productName: Tourney App
+appId: com.greenside.gametourn
+productName: Game Tourney Dashboard
 directories:
-  buildResources: build
   output: dist
 files:
-  - out/**/*
-  - '!**/*.map'
+  - out/**
+  - package.json
 win:
-  target:
-    - target: nsis
-      arch: [x64]
-  icon: build/icon.ico
+  target: nsis
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: true
-protocols:
-  - name: Tourney App
-    schemes:
-      - tourney
+  perMachine: false
