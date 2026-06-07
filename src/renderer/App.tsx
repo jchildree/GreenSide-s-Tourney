@@ -4,9 +4,10 @@ import { Draft } from './views/Draft'
 import { Bracket } from './views/Bracket'
 import { Control } from './views/Control'
 import { Settings } from './views/Settings'
+import { Matches } from './views/Matches'
 import { Onboarding } from './views/Onboarding'
 
-type View = 'setup' | 'draft' | 'bracket' | 'control' | 'settings'
+type View = 'setup' | 'draft' | 'bracket' | 'control' | 'settings' | 'matches'
 
 const NAV: { id: View; label: string }[] = [
   { id: 'setup',   label: 'Setup'   },
@@ -14,6 +15,7 @@ const NAV: { id: View; label: string }[] = [
   { id: 'bracket', label: 'Bracket' },
   { id: 'control', label: 'Control' },
   { id: 'settings', label: 'Settings' },
+  { id: 'matches', label: 'Matches' },
 ]
 
 export function App(): JSX.Element {
@@ -144,6 +146,7 @@ export function App(): JSX.Element {
           {view === 'bracket' && <Bracket />}
           {view === 'control' && <Control />}
           {view === 'settings' && <Settings />}
+          {view === 'matches' && <Matches />}
         </div>
       </main>
     </div>
