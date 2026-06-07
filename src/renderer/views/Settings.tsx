@@ -44,7 +44,7 @@ function ServiceRow({
             <button
               onClick={onDisconnect}
               disabled={disconnectLoading}
-              className="btn-secondary"
+              className="btn-ghost"
               style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem' }}
             >
               {disconnectLoading ? 'Disconnecting...' : 'Disconnect'}
