@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant } from '../shared/types'
 
 declare global {
   interface Window {
@@ -25,6 +25,8 @@ declare global {
       openExternal: (url: string) => Promise<void>
       disconnectGoogle: () => Promise<void>
       disconnectChallonge: () => Promise<void>
+      getMatches: () => Promise<{ matches: ChallongeMatch[]; participants: ChallongeParticipant[] }>
+      updateMatch: (matchId: string, scoresCsv: string, winnerId: string) => Promise<void>
     }
   }
 }

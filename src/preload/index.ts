@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant } from '../shared/types'
 
 const api = {
   getTourney: (): Promise<Tourney> => ipcRenderer.invoke('get-tourney'),
@@ -41,6 +41,10 @@ const api = {
 
   disconnectGoogle: (): Promise<void> => ipcRenderer.invoke('disconnect-google'),
   disconnectChallonge: (): Promise<void> => ipcRenderer.invoke('disconnect-challonge'),
+  getMatches: (): Promise<{ matches: ChallongeMatch[]; participants: ChallongeParticipant[] }> =>
+    ipcRenderer.invoke('get-matches'),
+  updateMatch: (matchId: string, scoresCsv: string, winnerId: string): Promise<void> =>
+    ipcRenderer.invoke('update-match', matchId, scoresCsv, winnerId),
 }
 
 contextBridge.exposeInMainWorld('api', api)
