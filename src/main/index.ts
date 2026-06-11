@@ -2,6 +2,10 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 
+if (!app.isPackaged) {
+  app.setPath('userData', app.getPath('userData') + '-dev')
+}
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,

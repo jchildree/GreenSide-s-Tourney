@@ -5,13 +5,27 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'node',
     globals: true,
-    include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: ['tests/setup.ts'],
-    environmentMatchGlobs: [
-      ['tests/renderer/**', 'jsdom']
-    ]
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['tests/**/*.{test,spec}.{ts,tsx}'],
+          exclude: ['tests/renderer/**', '**/node_modules/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'renderer',
+          environment: 'jsdom',
+          include: ['tests/renderer/**/*.{test,spec}.{ts,tsx}'],
+        },
+      },
+    ],
   },
   resolve: {
     alias: {
