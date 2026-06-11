@@ -1,5 +1,5 @@
 import { ipcMain, shell } from 'electron'
-import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData } from './store'
 import { getCredential, saveCredential, deleteCredential } from './keychain'
 import { pushToChallonge, startTournament, fetchMatches, updateMatch } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
@@ -111,6 +111,8 @@ export function registerIpcHandlers(): void {
     saveCredential(CRED.challonge, accessToken)
     saveCredential(CRED.challongeRefresh, refreshToken)
   })
+
+  ipcMain.handle('clear-tournament', () => clearTournamentData())
 
   ipcMain.handle('get-draft-session', () => readDraftSession())
   ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))

@@ -34,6 +34,8 @@ const api = {
   setGoogleFormId: (formId: string): Promise<void> =>
     ipcRenderer.invoke('set-google-form-id', formId),
 
+  clearTournament: (): Promise<void> => ipcRenderer.invoke('clear-tournament'),
+
   getDraftSession: (): Promise<DraftSession> => ipcRenderer.invoke('get-draft-session'),
   saveDraftSession: (s: DraftSession): Promise<void> => ipcRenderer.invoke('save-draft-session', s),
 

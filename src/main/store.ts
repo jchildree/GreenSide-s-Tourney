@@ -59,3 +59,12 @@ export function saveConfig(c: AppConfig): void { writeJson('config.json', c) }
 
 export function readDraftSession(): DraftSession { return readJson('draft-session.json', DEFAULT_DRAFT_SESSION) }
 export function saveDraftSession(s: DraftSession): void { writeJson('draft-session.json', s) }
+
+const TOURNAMENT_DATA_FILES = ['tourney.json', 'signups.json', 'draft.json', 'draft-session.json', 'sync.json']
+
+export function clearTournamentData(): void {
+  for (const name of TOURNAMENT_DATA_FILES) {
+    const p = filePath(name)
+    if (fs.existsSync(p)) fs.rmSync(p)
+  }
+}

@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
 }))
 
 // Import after mocks
-const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync } =
+const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, clearTournamentData } =
   await import('../../src/main/store')
 
 const DEFAULT = {
@@ -53,6 +53,26 @@ describe('readSignups', () => {
     vi.mocked(fs.writeFileSync).mockImplementation(() => {})
     vi.mocked(fs.readFileSync).mockReturnValue('[]')
     expect(readSignups()).toEqual([])
+  })
+})
+
+describe('clearTournamentData', () => {
+  it('removes the five tournament files and leaves config.json alone', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    const rm = vi.mocked(fs.rmSync).mockImplementation(() => {})
+    clearTournamentData()
+    const removed = rm.mock.calls.map(c => String(c[0]))
+    for (const name of ['tourney.json', 'signups.json', 'draft.json', 'draft-session.json', 'sync.json']) {
+      expect(removed.some(p => p.includes(name))).toBe(true)
+    }
+    expect(removed.some(p => p.includes('config.json'))).toBe(false)
+  })
+
+  it('skips files that do not exist', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false)
+    const rm = vi.mocked(fs.rmSync).mockImplementation(() => {})
+    clearTournamentData()
+    expect(rm).not.toHaveBeenCalled()
   })
 })
 

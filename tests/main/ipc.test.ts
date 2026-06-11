@@ -18,7 +18,8 @@ vi.mock('../../src/main/store', () => ({
   readDraft: vi.fn(() => ({ teams: [], pickOrder: [] })),
   saveDraft: vi.fn(),
   readSync: vi.fn(() => ({ challongeLastPushed: null, challongeTournamentId: null, googleFormLastUpdated: null })),
-  saveSync: vi.fn()
+  saveSync: vi.fn(),
+  clearTournamentData: vi.fn()
 }))
 
 vi.mock('../../src/main/keychain', () => ({
@@ -60,6 +61,14 @@ describe('get-credential', () => {
   it('returns credential for service', async () => {
     const result = await handlers['get-credential'](null, 'google')
     expect(result).toBe('mock-cred')
+  })
+})
+
+describe('clear-tournament', () => {
+  it('calls clearTournamentData', async () => {
+    const { clearTournamentData } = await import('../../src/main/store')
+    await handlers['clear-tournament'](null)
+    expect(clearTournamentData).toHaveBeenCalled()
   })
 })
 

@@ -68,9 +68,10 @@ function ServiceRow({
   )
 }
 
-export function Settings(): JSX.Element {
+export function Settings({ onCleared }: { onCleared?: () => void } = {}): JSX.Element {
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
   const [challongeConnected, setChallongeConnected] = useState<boolean | null>(null)
+  const [confirmingClear, setConfirmingClear] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -104,6 +105,12 @@ export function Settings(): JSX.Element {
     window.location.reload()
   })
 
+  const clearTournament = useAsyncAction(async () => {
+    await window.api.clearTournament()
+    setConfirmingClear(false)
+    onCleared?.()
+  })
+
   return (
     <div>
       <h2 className="view-title">Settings</h2>
@@ -129,6 +136,48 @@ export function Settings(): JSX.Element {
           connectError={connectChallonge.error}
           disconnectLoading={disconnectChallonge.loading}
         />
+      </div>
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <p className="form-label" style={{ marginBottom: '0.75rem' }}>Tournament Data</p>
+        {!confirmingClear ? (
+          <button
+            className="btn-ghost"
+            data-testid="clear-tournament"
+            onClick={() => setConfirmingClear(true)}
+            style={{ fontSize: '0.8rem' }}
+          >
+            Clear Tournament Data
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', margin: 0 }}>
+              Deletes tourney setup, signups, draft, and sync state. Credentials are kept.
+              This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button
+                className="btn-gold"
+                data-testid="confirm-clear"
+                onClick={clearTournament.run}
+                disabled={clearTournament.loading}
+                style={{ fontSize: '0.8rem', color: '#f87171', borderColor: '#f87171' }}
+              >
+                {clearTournament.loading ? 'Clearing...' : 'Confirm Clear'}
+              </button>
+              <button
+                className="btn-ghost"
+                onClick={() => setConfirmingClear(false)}
+                disabled={clearTournament.loading}
+                style={{ fontSize: '0.8rem' }}
+              >
+                Cancel
+              </button>
+              {clearTournament.error && (
+                <span className="status-err" style={{ fontSize: '0.75rem' }}>{clearTournament.error}</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

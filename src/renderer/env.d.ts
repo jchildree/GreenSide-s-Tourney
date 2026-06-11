@@ -20,6 +20,7 @@ declare global {
       beginGoogleOAuth: () => Promise<void>
       beginChallongeOAuth: () => Promise<void>
       setGoogleFormId: (formId: string) => Promise<void>
+      clearTournament: () => Promise<void>
       getDraftSession: () => Promise<DraftSession>
       saveDraftSession: (s: DraftSession) => Promise<void>
       openExternal: (url: string) => Promise<void>

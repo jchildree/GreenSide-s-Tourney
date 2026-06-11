@@ -145,7 +145,7 @@ export function App(): JSX.Element {
           {view === 'draft'   && <Draft />}
           {view === 'bracket' && <Bracket />}
           {view === 'control' && <Control />}
-          {view === 'settings' && <Settings />}
+          {view === 'settings' && <Settings onCleared={() => setView('setup')} />}
           {view === 'matches' && <Matches />}
         </div>
       </main>

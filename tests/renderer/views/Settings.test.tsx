@@ -20,6 +20,7 @@ beforeEach(() => {
     updateGoogleForm: vi.fn().mockResolvedValue(undefined),
     pushToChallonge: vi.fn().mockResolvedValue(undefined),
     saveCredential: vi.fn().mockResolvedValue(undefined),
+    clearTournament: vi.fn().mockResolvedValue(undefined),
   } as typeof window.api
 })
 
@@ -48,5 +49,31 @@ describe('Settings view', () => {
     const connectBtns = screen.getAllByRole('button', { name: /connect/i })
     await userEvent.click(connectBtns[0])
     expect(window.api.beginGoogleOAuth).toHaveBeenCalled()
+  })
+
+  it('shows confirm step before clearing tournament data', async () => {
+    render(<Settings />)
+    await userEvent.click(screen.getByTestId('clear-tournament'))
+    expect(screen.getByTestId('confirm-clear')).toBeInTheDocument()
+    expect(window.api.clearTournament).not.toHaveBeenCalled()
+  })
+
+  it('clears tournament data and fires onCleared on confirm', async () => {
+    const onCleared = vi.fn()
+    render(<Settings onCleared={onCleared} />)
+    await userEvent.click(screen.getByTestId('clear-tournament'))
+    await userEvent.click(screen.getByTestId('confirm-clear'))
+    await waitFor(() => {
+      expect(window.api.clearTournament).toHaveBeenCalled()
+      expect(onCleared).toHaveBeenCalled()
+    })
+  })
+
+  it('cancel hides confirm step without clearing', async () => {
+    render(<Settings />)
+    await userEvent.click(screen.getByTestId('clear-tournament'))
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByTestId('confirm-clear')).not.toBeInTheDocument()
+    expect(window.api.clearTournament).not.toHaveBeenCalled()
   })
 })
