@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant, Appearance, ThemeId } from '../shared/types'
 
 const api = {
   getTourney: (): Promise<Tourney> => ipcRenderer.invoke('get-tourney'),
@@ -47,6 +47,11 @@ const api = {
     ipcRenderer.invoke('get-matches'),
   updateMatch: (matchId: string, scoresCsv: string, winnerId: string): Promise<void> =>
     ipcRenderer.invoke('update-match', matchId, scoresCsv, winnerId),
+
+  getAppearance: (): Promise<Appearance> => ipcRenderer.invoke('get-appearance'),
+  setTheme: (theme: ThemeId): Promise<void> => ipcRenderer.invoke('set-theme', theme),
+  chooseBackground: (): Promise<string | null> => ipcRenderer.invoke('choose-background'),
+  removeBackground: (): Promise<void> => ipcRenderer.invoke('remove-background'),
 }
 
 contextBridge.exposeInMainWorld('api', api)

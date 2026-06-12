@@ -19,7 +19,9 @@ vi.mock('../../src/main/store', () => ({
   saveDraft: vi.fn(),
   readSync: vi.fn(() => ({ challongeLastPushed: null, challongeTournamentId: null, googleFormLastUpdated: null })),
   saveSync: vi.fn(),
-  clearTournamentData: vi.fn()
+  clearTournamentData: vi.fn(),
+  readConfig: vi.fn(() => ({ challongeCommunityUrl: '', theme: 'green', backgroundImage: null })),
+  saveConfig: vi.fn(),
 }))
 
 vi.mock('../../src/main/keychain', () => ({
@@ -34,6 +36,12 @@ vi.mock('../../src/main/integrations/challonge', () => ({
 vi.mock('../../src/main/integrations/google', () => ({
   updateGoogleForm: vi.fn().mockResolvedValue(undefined),
   fetchSignups: vi.fn().mockResolvedValue([])
+}))
+
+vi.mock('../../src/main/appearance', () => ({
+  backgroundDataUrl: vi.fn(() => null),
+  chooseBackground: vi.fn().mockResolvedValue('background.png'),
+  removeBackground: vi.fn(),
 }))
 
 const { registerIpcHandlers } = await import('../../src/main/ipc')
@@ -69,6 +77,41 @@ describe('clear-tournament', () => {
     const { clearTournamentData } = await import('../../src/main/store')
     await handlers['clear-tournament'](null)
     expect(clearTournamentData).toHaveBeenCalled()
+  })
+})
+
+describe('get-appearance', () => {
+  it('returns theme and background data url', async () => {
+    const result = await handlers['get-appearance'](null)
+    expect(result).toEqual({ theme: 'green', backgroundDataUrl: null })
+  })
+})
+
+describe('set-theme', () => {
+  it('persists theme into config', async () => {
+    const { saveConfig } = await import('../../src/main/store')
+    await handlers['set-theme'](null, 'crimson')
+    expect(saveConfig).toHaveBeenCalledWith(expect.objectContaining({ theme: 'crimson' }))
+  })
+
+  it('rejects unknown theme ids', async () => {
+    await expect(async () => handlers['set-theme'](null, 'neon-zebra')).rejects.toThrow()
+  })
+})
+
+describe('choose-background / remove-background', () => {
+  it('saves chosen file name into config', async () => {
+    const { saveConfig } = await import('../../src/main/store')
+    await handlers['choose-background'](null)
+    expect(saveConfig).toHaveBeenCalledWith(expect.objectContaining({ backgroundImage: 'background.png' }))
+  })
+
+  it('clears backgroundImage on remove', async () => {
+    const { saveConfig } = await import('../../src/main/store')
+    const { removeBackground } = await import('../../src/main/appearance')
+    await handlers['remove-background'](null)
+    expect(removeBackground).toHaveBeenCalled()
+    expect(saveConfig).toHaveBeenCalledWith(expect.objectContaining({ backgroundImage: null }))
   })
 })
 

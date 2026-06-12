@@ -1,13 +1,14 @@
 import { ipcMain, shell } from 'electron'
-import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData, readConfig, saveConfig } from './store'
 import { getCredential, saveCredential, deleteCredential } from './keychain'
 import { pushToChallonge, startTournament, fetchMatches, updateMatch } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
-import type { Tourney, DraftPick, OnboardingStatus, DraftSession } from '../shared/types'
-import { CRED, CHALLONGE_CREDENTIAL_EXPIRED, GOOGLE_CREDENTIAL_EXPIRED } from '../shared/types'
+import { backgroundDataUrl, chooseBackground, removeBackground } from './appearance'
+import type { Tourney, DraftPick, OnboardingStatus, DraftSession, ThemeId, Appearance } from '../shared/types'
+import { CRED, CHALLONGE_CREDENTIAL_EXPIRED, GOOGLE_CREDENTIAL_EXPIRED, THEME_IDS } from '../shared/types'
 import { withCredentialGuard } from './credential-guard'
 
 export function registerIpcHandlers(): void {
@@ -113,6 +114,28 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('clear-tournament', () => clearTournamentData())
+
+  ipcMain.handle('get-appearance', (): Appearance => {
+    const config = readConfig()
+    return { theme: config.theme, backgroundDataUrl: backgroundDataUrl(config.backgroundImage) }
+  })
+
+  ipcMain.handle('set-theme', (_e, theme: ThemeId) => {
+    if (!THEME_IDS.includes(theme)) throw new Error(`Unknown theme: ${theme}`)
+    saveConfig({ ...readConfig(), theme })
+  })
+
+  ipcMain.handle('choose-background', async (): Promise<string | null> => {
+    const name = await chooseBackground()
+    if (!name) return null
+    saveConfig({ ...readConfig(), backgroundImage: name })
+    return backgroundDataUrl(name)
+  })
+
+  ipcMain.handle('remove-background', () => {
+    removeBackground()
+    saveConfig({ ...readConfig(), backgroundImage: null })
+  })
 
   ipcMain.handle('get-draft-session', () => readDraftSession())
   ipcMain.handle('save-draft-session', (_e, s: DraftSession) => saveDraftSession(s))
