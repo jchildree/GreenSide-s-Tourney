@@ -80,8 +80,19 @@ export const DEFAULT_SYNC: Sync = {
   tournamentStartedAt: null,
 }
 
+export type ThemeId = 'green' | 'blue' | 'crimson' | 'purple' | 'amber'
+
+export const THEME_IDS: ThemeId[] = ['green', 'blue', 'crimson', 'purple', 'amber']
+
 export interface AppConfig {
   challongeCommunityUrl: string
+  theme: ThemeId
+  backgroundImage: string | null
+}
+
+export interface Appearance {
+  theme: ThemeId
+  backgroundDataUrl: string | null
 }
 
 export interface OnboardingStatus {
@@ -91,7 +102,9 @@ export interface OnboardingStatus {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  challongeCommunityUrl: ''
+  challongeCommunityUrl: '',
+  theme: 'green',
+  backgroundImage: null,
 }
 
 export const DEFAULT_ONBOARDING_STATUS: OnboardingStatus = {

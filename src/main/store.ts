@@ -54,7 +54,7 @@ export function saveDraft(d: Draft): void { writeJson('draft.json', d) }
 export function readSync(): Sync { return { ...DEFAULT_SYNC, ...readJson('sync.json', DEFAULT_SYNC) } }
 export function saveSync(s: Sync): void { writeJson('sync.json', s) }
 
-export function readConfig(): AppConfig { return readJson('config.json', DEFAULT_CONFIG) }
+export function readConfig(): AppConfig { return { ...DEFAULT_CONFIG, ...readJson('config.json', DEFAULT_CONFIG) } }
 export function saveConfig(c: AppConfig): void { writeJson('config.json', c) }
 
 export function readDraftSession(): DraftSession { return readJson('draft-session.json', DEFAULT_DRAFT_SESSION) }

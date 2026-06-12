@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
 }))
 
 // Import after mocks
-const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, clearTournamentData } =
+const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, clearTournamentData, readConfig } =
   await import('../../src/main/store')
 
 const DEFAULT = {
@@ -85,5 +85,16 @@ describe('saveDraft / readDraft round-trip', () => {
     vi.mocked(fs.readFileSync).mockImplementation(() => stored)
     saveDraft(draft)
     expect(readDraft()).toEqual(draft)
+  })
+})
+
+describe('readConfig', () => {
+  it('merges defaults into old config files missing new fields', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ challongeCommunityUrl: 'https://challonge.com/x' }))
+    const cfg = readConfig()
+    expect(cfg.challongeCommunityUrl).toBe('https://challonge.com/x')
+    expect(cfg.theme).toBe('green')
+    expect(cfg.backgroundImage).toBeNull()
   })
 })
