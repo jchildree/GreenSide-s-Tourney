@@ -28,6 +28,12 @@ describe('backgroundDataUrl', () => {
     const url = backgroundDataUrl('bg.png')
     expect(url).toMatch(/^data:image\/png;base64,/)
   })
+
+  it('returns null for path traversal file names', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('x'))
+    expect(backgroundDataUrl('../../secret.png')).toBeNull()
+  })
 })
 
 describe('chooseBackground', () => {

@@ -16,7 +16,9 @@ function backgroundsDir(): string {
 
 export function backgroundDataUrl(fileName: string | null): string | null {
   if (!fileName) return null
-  const p = path.join(backgroundsDir(), fileName)
+  const dir = path.resolve(backgroundsDir())
+  const p = path.resolve(dir, fileName)
+  if (!p.startsWith(dir + path.sep)) return null
   if (!fs.existsSync(p)) return null
   const mime = MIME[path.extname(fileName).toLowerCase()]
   if (!mime) return null
