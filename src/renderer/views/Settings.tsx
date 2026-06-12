@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 import { CRED } from '../../shared/types'
 import { THEMES } from '../theme'
@@ -121,10 +121,11 @@ export function Settings({ onCleared, theme = 'green', onThemeChange, background
     onCleared?.()
   })
 
-  const pickTheme = async (t: ThemeId): Promise<void> => {
-    await window.api.setTheme(t)
-    onThemeChange?.(t)
-  }
+  const pendingTheme = useRef<ThemeId>('green')
+  const pickTheme = useAsyncAction(async () => {
+    await window.api.setTheme(pendingTheme.current)
+    onThemeChange?.(pendingTheme.current)
+  })
 
   const chooseBg = useAsyncAction(async () => {
     const dataUrl = await window.api.chooseBackground()
@@ -170,7 +171,7 @@ export function Settings({ onCleared, theme = 'green', onThemeChange, background
               key={t.id}
               data-testid={`theme-swatch-${t.id}`}
               title={t.label}
-              onClick={() => void pickTheme(t.id)}
+              onClick={() => { pendingTheme.current = t.id; void pickTheme.run() }}
               style={{
                 width: '2.25rem',
                 height: '2.25rem',
@@ -206,8 +207,8 @@ export function Settings({ onCleared, theme = 'green', onThemeChange, background
               Remove Background
             </button>
           )}
-          {(chooseBg.error || removeBg.error) && (
-            <span className="status-err" style={{ fontSize: '0.75rem' }}>{chooseBg.error || removeBg.error}</span>
+          {(pickTheme.error || chooseBg.error || removeBg.error) && (
+            <span className="status-err" style={{ fontSize: '0.75rem' }}>{pickTheme.error || chooseBg.error || removeBg.error}</span>
           )}
         </div>
       </div>
