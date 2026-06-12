@@ -25,11 +25,78 @@
   --color-card:    #0f2917;
   --color-border:  #1d492d;
   --color-primary: #1ebb57;
+  --color-primary-bright: #86efac;
+  --color-primary-deep:   #15803d;
   --color-silver:  #8fb4a0;
   --color-text:    #eaeaea;
   --color-muted:   #7a9488;
   --color-danger:  #e94560;
   --color-success: #2ecc71;
+  --color-gold:    #e3b341;
+  --glow-rgb:      34, 197, 94;
+  --nav-active:    linear-gradient(160deg, #1a3d24 0%, #122b19 100%);
+  --btn-on-primary: #021a0a;
+}
+
+[data-theme='blue'] {
+  --color-bg:      #050a14;
+  --color-surface: #0a1426;
+  --color-card:    #0f1d33;
+  --color-border:  #1d3a5f;
+  --color-primary: #3b82f6;
+  --color-primary-bright: #93c5fd;
+  --color-primary-deep:   #1d4ed8;
+  --color-silver:  #8fa6c4;
+  --color-muted:   #7a8aa8;
+  --glow-rgb:      59, 130, 246;
+  --nav-active:    linear-gradient(160deg, #1a2a3d 0%, #121d2b 100%);
+  --btn-on-primary: #02101a;
+}
+
+[data-theme='crimson'] {
+  --color-bg:      #140507;
+  --color-surface: #200a0e;
+  --color-card:    #2c1015;
+  --color-border:  #5f1d28;
+  --color-primary: #ef4444;
+  --color-primary-bright: #fca5a5;
+  --color-primary-deep:   #b91c1c;
+  --color-silver:  #c49aa0;
+  --color-muted:   #a87a82;
+  --glow-rgb:      239, 68, 68;
+  --nav-active:    linear-gradient(160deg, #3d1a1f 0%, #2b1216 100%);
+  --btn-on-primary: #1a0204;
+}
+
+[data-theme='purple'] {
+  --color-bg:      #0c0514;
+  --color-surface: #150a24;
+  --color-card:    #1e1033;
+  --color-border:  #3f1d5f;
+  --color-primary: #a855f7;
+  --color-primary-bright: #d8b4fe;
+  --color-primary-deep:   #7e22ce;
+  --color-silver:  #b49ac4;
+  --color-muted:   #9a7aa8;
+  --glow-rgb:      168, 85, 247;
+  --nav-active:    linear-gradient(160deg, #2e1a3d 0%, #20122b 100%);
+  --btn-on-primary: #12021a;
+}
+
+[data-theme='amber'] {
+  --color-bg:      #140d05;
+  --color-surface: #20150a;
+  --color-card:    #2c1d0f;
+  --color-border:  #5f431d;
+  --color-primary: #f59e0b;
+  --color-primary-bright: #fcd34d;
+  --color-primary-deep:   #b45309;
+  --color-silver:  #c4b09a;
+  --color-muted:   #a8907a;
+  --glow-rgb:      245, 158, 11;
+  --nav-active:    linear-gradient(160deg, #3d2e1a 0%, #2b2012 100%);
+  --color-gold:    #facc15;
+  --btn-on-primary: #1a1002;
 }
 
 /* Base resets & global defaults */
@@ -91,12 +158,12 @@
     cursor: pointer;
     user-select: none;
     line-height: 1;
-    color: #021a0a;
-    background: linear-gradient(160deg, #86efac 0%, #22c55e 45%, #16a34a 100%);
-    border: 1px solid #15803d;
+    color: var(--btn-on-primary);
+    background: linear-gradient(160deg, var(--color-primary-bright) 0%, var(--color-primary) 45%, var(--color-primary-deep) 100%);
+    border: 1px solid var(--color-primary-deep);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     box-shadow:
-      0 0 18px rgba(34, 197, 94, 0.45),
+      0 0 18px rgba(var(--glow-rgb), 0.45),
       0 2px 8px rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.3),
       inset 0 -1px 0 rgba(0, 0, 0, 0.25);
@@ -105,7 +172,7 @@
   .btn-gold:hover:not(:disabled) {
     filter: brightness(1.1);
     box-shadow:
-      0 0 28px rgba(34, 197, 94, 0.65),
+      0 0 28px rgba(var(--glow-rgb), 0.65),
       0 4px 14px rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.38),
       inset 0 -1px 0 rgba(0, 0, 0, 0.2);
@@ -113,7 +180,7 @@
   .btn-gold:active:not(:disabled) {
     filter: brightness(0.88);
     box-shadow:
-      0 0 10px rgba(34, 197, 94, 0.3),
+      0 0 10px rgba(var(--glow-rgb), 0.3),
       0 1px 4px rgba(0, 0, 0, 0.5),
       inset 0 2px 4px rgba(0, 0, 0, 0.3);
   }
@@ -134,10 +201,10 @@
     user-select: none;
     line-height: 1;
     color: var(--color-silver);
-    background: linear-gradient(160deg, #152e1e 0%, #0e2415 100%);
+    background: linear-gradient(160deg, var(--color-card) 0%, var(--color-surface) 100%);
     border: 1px solid var(--color-border);
     box-shadow:
-      0 0 8px rgba(34, 197, 94, 0.1),
+      0 0 8px rgba(var(--glow-rgb), 0.1),
       0 2px 6px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.04);
     transition: box-shadow 150ms ease, border-color 150ms ease, color 150ms ease;
@@ -146,13 +213,13 @@
     color: var(--color-text);
     border-color: var(--color-silver);
     box-shadow:
-      0 0 16px rgba(34, 197, 94, 0.25),
+      0 0 16px rgba(var(--glow-rgb), 0.25),
       0 3px 10px rgba(0, 0, 0, 0.45),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .btn-ghost:active:not(:disabled) {
     box-shadow:
-      0 0 6px rgba(34, 197, 94, 0.12),
+      0 0 6px rgba(var(--glow-rgb), 0.12),
       inset 0 2px 4px rgba(0, 0, 0, 0.25);
   }
   .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
