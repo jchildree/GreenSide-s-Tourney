@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 import { CRED } from '../../shared/types'
+import { THEMES } from '../theme'
+import type { ThemeId } from '../../shared/types'
 
 function ServiceRow({
   label,
@@ -68,7 +70,15 @@ function ServiceRow({
   )
 }
 
-export function Settings({ onCleared }: { onCleared?: () => void } = {}): JSX.Element {
+interface SettingsProps {
+  onCleared?: () => void
+  theme?: ThemeId
+  onThemeChange?: (t: ThemeId) => void
+  backgroundSet?: boolean
+  onBackgroundChange?: (dataUrl: string | null) => void
+}
+
+export function Settings({ onCleared, theme = 'green', onThemeChange, backgroundSet = false, onBackgroundChange }: SettingsProps = {}): JSX.Element {
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
   const [challongeConnected, setChallongeConnected] = useState<boolean | null>(null)
   const [confirmingClear, setConfirmingClear] = useState(false)
@@ -111,6 +121,21 @@ export function Settings({ onCleared }: { onCleared?: () => void } = {}): JSX.El
     onCleared?.()
   })
 
+  const pickTheme = async (t: ThemeId): Promise<void> => {
+    await window.api.setTheme(t)
+    onThemeChange?.(t)
+  }
+
+  const chooseBg = useAsyncAction(async () => {
+    const dataUrl = await window.api.chooseBackground()
+    if (dataUrl !== null) onBackgroundChange?.(dataUrl)
+  })
+
+  const removeBg = useAsyncAction(async () => {
+    await window.api.removeBackground()
+    onBackgroundChange?.(null)
+  })
+
   return (
     <div>
       <h2 className="view-title">Settings</h2>
@@ -136,6 +161,55 @@ export function Settings({ onCleared }: { onCleared?: () => void } = {}): JSX.El
           connectError={connectChallonge.error}
           disconnectLoading={disconnectChallonge.loading}
         />
+      </div>
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <p className="form-label" style={{ marginBottom: '0.75rem' }}>Appearance</p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {THEMES.map(t => (
+            <button
+              key={t.id}
+              data-testid={`theme-swatch-${t.id}`}
+              title={t.label}
+              onClick={() => void pickTheme(t.id)}
+              style={{
+                width: '2.25rem',
+                height: '2.25rem',
+                borderRadius: '50%',
+                backgroundColor: t.swatch,
+                border: theme === t.id ? '3px solid var(--color-text)' : '2px solid var(--color-border)',
+                cursor: 'pointer',
+              }}
+            />
+          ))}
+          <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>
+            {THEMES.find(t => t.id === theme)?.label}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '1rem' }}>
+          <button
+            className="btn-ghost"
+            data-testid="choose-background"
+            onClick={chooseBg.run}
+            disabled={chooseBg.loading}
+            style={{ fontSize: '0.8rem' }}
+          >
+            {chooseBg.loading ? 'Opening...' : backgroundSet ? 'Change Background Image' : 'Choose Background Image'}
+          </button>
+          {backgroundSet && (
+            <button
+              className="btn-ghost"
+              data-testid="remove-background"
+              onClick={removeBg.run}
+              disabled={removeBg.loading}
+              style={{ fontSize: '0.8rem' }}
+            >
+              Remove Background
+            </button>
+          )}
+          {(chooseBg.error || removeBg.error) && (
+            <span className="status-err" style={{ fontSize: '0.75rem' }}>{chooseBg.error || removeBg.error}</span>
+          )}
+        </div>
       </div>
       <div className="card" style={{ marginTop: '1rem' }}>
         <p className="form-label" style={{ marginBottom: '0.75rem' }}>Tournament Data</p>

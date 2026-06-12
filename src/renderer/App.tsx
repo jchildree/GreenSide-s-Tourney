@@ -6,6 +6,8 @@ import { Control } from './views/Control'
 import { Settings } from './views/Settings'
 import { Matches } from './views/Matches'
 import { Onboarding } from './views/Onboarding'
+import { applyTheme } from './theme'
+import type { ThemeId } from '../shared/types'
 
 type View = 'setup' | 'draft' | 'bracket' | 'control' | 'settings' | 'matches'
 
@@ -21,10 +23,29 @@ const NAV: { id: View; label: string }[] = [
 export function App(): JSX.Element {
   const [view, setView] = useState<View>('setup')
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
+  const [theme, setTheme] = useState<ThemeId>('green')
+  const [bgUrl, setBgUrl] = useState<string | null>(null)
 
   useEffect(() => {
     window.api.checkOnboarding().then(status => setOnboarded(status.complete))
   }, [])
+
+  useEffect(() => {
+    window.api.getAppearance().then(a => {
+      setTheme(a.theme)
+      applyTheme(a.theme)
+      setBgUrl(a.backgroundDataUrl)
+    })
+  }, [])
+
+  function handleThemeChange(t: ThemeId): void {
+    setTheme(t)
+    applyTheme(t)
+  }
+
+  function handleBackgroundChange(url: string | null): void {
+    setBgUrl(url)
+  }
 
   if (onboarded === null) {
     return (
@@ -52,15 +73,30 @@ export function App(): JSX.Element {
       display: 'flex',
       flexDirection: 'column',
     }}>
+      {bgUrl && (
+        <div
+          aria-hidden
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 0,
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url(${bgUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+      )}
       <header style={{
         backgroundColor: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-border)',
-        boxShadow: '0 1px 0 rgba(34, 197, 94, 0.08)',
+        boxShadow: '0 1px 0 rgba(var(--glow-rgb), 0.08)',
         padding: '0.75rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         gap: '2rem',
         flexShrink: 0,
+        position: 'relative',
+        zIndex: 1,
       }}>
         <div style={{ flexShrink: 0 }}>
           <h1 style={{
@@ -99,9 +135,7 @@ export function App(): JSX.Element {
                   fontWeight: 600,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  background: active
-                    ? 'linear-gradient(160deg, #1a3d24 0%, #122b19 100%)'
-                    : 'transparent',
+                  background: active ? 'var(--nav-active)' : 'transparent',
                   color: active ? 'var(--color-primary)' : 'var(--color-muted)',
                   border: '1px solid',
                   borderColor: active ? 'var(--color-border)' : 'transparent',
@@ -139,13 +173,23 @@ export function App(): JSX.Element {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        position: 'relative',
+        zIndex: 1,
       }}>
         <div style={{ width: '100%', maxWidth: '1600px' }}>
           {view === 'setup'   && <Setup />}
           {view === 'draft'   && <Draft />}
           {view === 'bracket' && <Bracket />}
           {view === 'control' && <Control />}
-          {view === 'settings' && <Settings onCleared={() => setView('setup')} />}
+          {view === 'settings' && (
+            <Settings
+              onCleared={() => setView('setup')}
+              theme={theme}
+              onThemeChange={handleThemeChange}
+              backgroundSet={bgUrl !== null}
+              onBackgroundChange={handleBackgroundChange}
+            />
+          )}
           {view === 'matches' && <Matches />}
         </div>
       </main>
