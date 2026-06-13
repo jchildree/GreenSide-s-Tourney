@@ -1,5 +1,5 @@
 appId: com.greenside.gametourn
-productName: Game Tourney Dashboard
+productName: The Colosseum
 directories:
   output: dist
 files:
