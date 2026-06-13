@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChallongeMatch, ChallongeParticipant } from '../../shared/types'
+import { CHALLONGE_CREDENTIAL_EXPIRED } from '../../shared/types'
 import { useAsyncAction } from '../hooks/useAsyncAction'
 
 type MatchesData = { matches: ChallongeMatch[]; participants: ChallongeParticipant[] }
@@ -135,20 +136,29 @@ export function Matches(): JSX.Element {
 
   return (
     <div>
-      <h2 className="view-title">Matches</h2>
+      <h2 className="view-title">Brackets</h2>
 
-      {loadError && (
-        <div className="card" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="status-err">{loadError}</span>
-          <button
-            onClick={load}
-            className="btn-gold"
-            style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {loadError && (() => {
+        const isAuthError = loadError.includes('re-authenticate in Settings') || loadError === CHALLONGE_CREDENTIAL_EXPIRED
+        return isAuthError ? (
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', margin: 0 }}>
+              Challonge is not connected. Open the Settings tab, reconnect your Challonge account, then return here.
+            </p>
+          </div>
+        ) : (
+          <div className="card" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span className="status-err">{loadError}</span>
+            <button
+              onClick={load}
+              className="btn-gold"
+              style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
+            >
+              Retry
+            </button>
+          </div>
+        )
+      })()}
 
       {!data && !loadError && (
         <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Loading matches...</p>
