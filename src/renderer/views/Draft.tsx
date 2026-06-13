@@ -11,6 +11,8 @@ import {
   snakeAssign,
   applyPicks,
   unassignedPlayers,
+  filterPlayersByName,
+  buildSnakeQueue,
 } from '../utils/draftModes'
 import type { Player, Team, DraftPick, Tourney, DraftSession } from '../../shared/types'
 import { DEFAULT_DRAFT_SESSION } from '../../shared/types'
@@ -26,13 +28,14 @@ export function Draft(): JSX.Element {
   const [dragActive, setDragActive] = useState<string | null>(null)
   const [spinning, setSpinning] = useState(false)
   const [status, setStatus] = useState('')
+  const [snakePickIdx, setSnakePickIdx] = useState(0)
+  const [pendingSnakePick, setPendingSnakePick] = useState<string | null>(null)
   const [timerDuration, setTimerDuration] = useState(60)
   const [remainingSeconds, setRemainingSeconds] = useState(60)
   const [timerRunning, setTimerRunning] = useState(false)
   const sessionRef = useRef<DraftSession>(DEFAULT_DRAFT_SESSION)
   const prevPickCountRef = useRef(0)
 
-  // Load data on mount
   useEffect(() => {
     Promise.all([window.api.getSignups(), window.api.getDraft(), window.api.getTourney(), window.api.getDraftSession()])
       .then(([s, d, t, session]) => {
@@ -42,9 +45,8 @@ export function Draft(): JSX.Element {
         setTimerDuration(session.timerDuration)
         setRemainingSeconds(session.remainingSeconds)
         if (d.teams.length > 0) {
-          // Restore existing draft
           setTeamNames(d.teams.map(tm => tm.name))
-          const restoredPicks: DraftPick[] = d.teams.flatMap((tm, _ti) =>
+          const restoredPicks: DraftPick[] = d.teams.flatMap(tm =>
             tm.players.map((p, pi) => ({ playerName: p, teamName: tm.name, pickNumber: pi + 1 }))
           )
           setPicks(restoredPicks)
@@ -59,9 +61,12 @@ export function Draft(): JSX.Element {
   const playerNames = signups.map(p => p.name)
   const teams: Team[] = applyPicks(picks)
   const unassigned = unassignedPlayers(playerNames, picks)
+  const snakeQueue = buildSnakeQueue(teamNames, playerNames.length)
+  const currentSnakeTeam = snakeQueue[snakePickIdx] ?? null
 
   // Per-pick timer behavior: single pick restarts the countdown, bulk assign or reset stops it
   useEffect(() => {
+    if (mode === 'snake') return
     const prev = prevPickCountRef.current
     prevPickCountRef.current = picks.length
     if (picks.length === prev) return
@@ -71,7 +76,16 @@ export function Draft(): JSX.Element {
     } else {
       setTimerRunning(false)
     }
-  }, [picks.length, timerDuration])
+  }, [picks.length, timerDuration, mode])
+
+  useEffect(() => {
+    if (mode !== 'snake') {
+      setPendingSnakePick(null)
+      setTimerRunning(false)
+      // Sync baseline so the first non-snake pick doesn't misread the delta
+      prevPickCountRef.current = picks.length
+    }
+  }, [mode]) // picks.length intentionally omitted - only resets on mode change
 
   function handleDurationChange(seconds: number): void {
     setTimerDuration(seconds)
@@ -79,6 +93,29 @@ export function Draft(): JSX.Element {
     const session = { ...sessionRef.current, timerDuration: seconds, remainingSeconds: seconds }
     sessionRef.current = session
     void window.api.saveDraftSession(session)
+  }
+
+  function advanceSnakePick(): void {
+    const teamName = snakeQueue[snakePickIdx]
+    if (pendingSnakePick && teamName) {
+      setPicks(prev => [
+        ...prev,
+        { playerName: pendingSnakePick, teamName, pickNumber: prev.length + 1 },
+      ])
+    }
+    setPendingSnakePick(null)
+    setSnakePickIdx(prev => prev + 1)
+    setRemainingSeconds(timerDuration)
+    setTimerRunning(true)
+  }
+
+  function handleSelectSnakePlayer(name: string): void {
+    setPendingSnakePick(prev => (prev === name ? null : name))
+  }
+
+  function handleSnakeSpinComplete(playerName: string): void {
+    setSpinning(false)
+    setPendingSnakePick(playerName)
   }
 
   // --- Random mode ---
@@ -89,8 +126,7 @@ export function Draft(): JSX.Element {
 
   function handleSpinComplete(playerName: string): void {
     setSpinning(false)
-    // Derive nextTeam inside the functional updater so it uses the latest picks count,
-    // not the stale closure value — prevents mis-assignment if state changed during spin.
+    // Functional updater ensures nextTeam uses the latest picks count, not the stale closure value.
     setPicks(prev => {
       const nextTeam = teamNames[prev.length % teamNames.length]
       return [...prev, { playerName, teamName: nextTeam, pickNumber: prev.length + 1 }]
@@ -146,6 +182,8 @@ export function Draft(): JSX.Element {
 
   function handleReset(): void {
     setPicks([])
+    setSnakePickIdx(0)
+    setPendingSnakePick(null)
   }
 
   // Mode button style helper
@@ -211,9 +249,47 @@ export function Draft(): JSX.Element {
           </>
         )}
         {mode === 'snake' && (
-          <button className="btn-gold" onClick={handleSnakeAssign} disabled={playerCount === 0}>
-            Assign All (Snake)
-          </button>
+          <>
+            {currentSnakeTeam ? (
+              <>
+                <span style={{
+                  color: 'var(--color-gold)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  background: 'rgba(200,169,110,0.1)',
+                  border: '1px solid var(--color-gold)',
+                  borderRadius: '0.3rem',
+                  padding: '0.25rem 0.75rem',
+                }}>
+                  {currentSnakeTeam}'s Pick
+                </span>
+                <PickWheel
+                  players={unassigned}
+                  onSpinStart={() => setSpinning(true)}
+                  onSpinComplete={handleSnakeSpinComplete}
+                />
+                <button
+                  className="btn-gold"
+                  onClick={advanceSnakePick}
+                  disabled={!pendingSnakePick}
+                >
+                  {pendingSnakePick ? `Confirm: ${pendingSnakePick}` : 'Confirm'}
+                </button>
+              </>
+            ) : (
+              <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                All players assigned
+              </span>
+            )}
+            <button className="btn-ghost" onClick={handleSnakeAssign} disabled={playerCount === 0 || spinning}>
+              Assign All
+            </button>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.72rem', margin: 0 }}>
+              Snake: {teamNames.join(' > ')} {'>'} {[...teamNames].reverse().join(' > ')} {'>'} ...
+            </p>
+          </>
         )}
         {mode === 'manual' && (
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', margin: 0 }}>
@@ -229,7 +305,13 @@ export function Draft(): JSX.Element {
             onToggle={() => setTimerRunning(r => !r)}
             onReset={() => { setRemainingSeconds(timerDuration); setTimerRunning(false) }}
             onTick={setRemainingSeconds}
-            onExpire={() => setTimerRunning(false)}
+            onExpire={() => {
+              if (mode === 'snake' && currentSnakeTeam) {
+                advanceSnakePick()
+              } else {
+                setTimerRunning(false)
+              }
+            }}
           />
           <button className="btn-gold" onClick={handleSave}>Save Draft</button>
           <button className="btn-ghost" onClick={handleReset}>Reset Draft</button>
@@ -249,6 +331,8 @@ export function Draft(): JSX.Element {
             picks={picks}
             draggable={mode === 'manual'}
             dragActive={dragActive}
+            selectedPlayer={mode === 'snake' ? pendingSnakePick : null}
+            onSelectPlayer={mode === 'snake' ? handleSelectSnakePlayer : undefined}
           />
 
           {/* RIGHT: Teams */}
@@ -261,13 +345,19 @@ export function Draft(): JSX.Element {
             <TeamRoster
               teams={teams}
               allPlayers={playerNames}
+              highlightedTeam={mode === 'snake' ? currentSnakeTeam ?? undefined : undefined}
               onRenameTeam={handleRenameTeam}
               onRemovePlayer={handleRemovePlayer}
               onAddPlayer={handleAddPlayer}
             />
             {/* Empty team placeholders for unassigned teams */}
             {teamNames.filter(n => !teams.find(t => t.name === n)).map(name => (
-              <TeamDropZone key={name} teamName={name} mode={mode} />
+              <TeamDropZone
+                key={name}
+                teamName={name}
+                mode={mode}
+                highlighted={mode === 'snake' && name === currentSnakeTeam}
+              />
             ))}
           </div>
         </div>
@@ -293,10 +383,14 @@ interface PlayerPoolProps {
   picks: DraftPick[]
   draggable: boolean
   dragActive: string | null
+  selectedPlayer?: string | null
+  onSelectPlayer?: (name: string) => void
 }
 
-function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps): JSX.Element {
+function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onSelectPlayer }: PlayerPoolProps): JSX.Element {
+  const [searchQuery, setSearchQuery] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })
+  const displayed = filterPlayersByName(players, searchQuery)
 
   return (
     <div
@@ -320,15 +414,33 @@ function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps):
         textTransform: 'uppercase',
         margin: '0 0 0.6rem',
       }}>
-        Player Pool ({players.length})
+        Player Pool ({searchQuery ? `${displayed.length} / ${players.length}` : players.length})
       </p>
+      <input
+        type="search"
+        placeholder="Search players..."
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          background: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '0.3rem',
+          color: 'var(--color-text)',
+          fontSize: '0.8rem',
+          padding: '0.3rem 0.5rem',
+          marginBottom: '0.5rem',
+          outline: 'none',
+        }}
+      />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         {players.length === 0 && (
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>
             No players. Fetch signups in Control tab.
           </p>
         )}
-        {players.map(player => {
+        {displayed.map(player => {
           const pick = picks.find(p => p.playerName === player.name)
           if (draggable) {
             return (
@@ -340,12 +452,15 @@ function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps):
               />
             )
           }
+          const isAssigned = !!pick
           return (
             <PlayerCard
               key={player.name}
               player={player}
-              assigned={!!pick}
+              assigned={isAssigned}
               teamName={pick?.teamName}
+              selected={!isAssigned && selectedPlayer === player.name}
+              onClick={!isAssigned && onSelectPlayer ? () => onSelectPlayer(player.name) : undefined}
             />
           )
         })}
@@ -382,14 +497,15 @@ function DraggablePlayer({
 
 /* ---- Empty team drop zone ---- */
 
-function TeamDropZone({ teamName, mode }: { teamName: string; mode: DraftMode }): JSX.Element {
+function TeamDropZone({ teamName, mode, highlighted }: { teamName: string; mode: DraftMode; highlighted?: boolean }): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: teamName })
   return (
     <div
       ref={setNodeRef}
       style={{
         backgroundColor: 'var(--color-card)',
-        border: `1px dashed ${isOver ? 'var(--color-gold)' : 'var(--color-border)'}`,
+        border: `1px ${highlighted ? 'solid' : 'dashed'} ${isOver || highlighted ? 'var(--color-gold)' : 'var(--color-border)'}`,
+        boxShadow: highlighted ? '0 0 8px rgba(200, 169, 110, 0.35)' : 'none',
         borderRadius: '0.5rem',
         padding: '0.75rem',
         minHeight: '80px',

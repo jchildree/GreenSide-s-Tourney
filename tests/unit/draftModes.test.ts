@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import type { Player } from '../../src/shared/types'
 import {
   computeTeamCount,
   autoNameTeams,
@@ -6,6 +7,8 @@ import {
   snakeAssign,
   applyPicks,
   unassignedPlayers,
+  filterPlayersByName,
+  buildSnakeQueue,
 } from '../../src/renderer/utils/draftModes'
 
 // ---------------------------------------------------------------------------
@@ -235,5 +238,63 @@ describe('unassignedPlayers', () => {
     // Two players named 'Alice', only one assigned
     const picks = [{ playerName: 'Alice', teamName: 'T', pickNumber: 1 }]
     expect(unassignedPlayers(['Alice', 'Alice', 'Bob'], picks)).toEqual(['Alice', 'Bob'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// filterPlayersByName
+// ---------------------------------------------------------------------------
+describe('filterPlayersByName', () => {
+  const players: Player[] = [
+    { name: 'Alice', discordHandle: '@alice', submittedAt: '' },
+    { name: 'Bob', discordHandle: '@bob', submittedAt: '' },
+    { name: 'Charlie', discordHandle: '@charlie', submittedAt: '' },
+  ]
+
+  it('returns all players when query is empty string', () => {
+    expect(filterPlayersByName(players, '')).toEqual(players)
+  })
+
+  it('filters case-insensitively by name substring', () => {
+    expect(filterPlayersByName(players, 'ali')).toEqual([players[0]])
+  })
+
+  it('returns empty array when no player matches', () => {
+    expect(filterPlayersByName(players, 'xyz')).toEqual([])
+  })
+
+  it('returns multiple matches', () => {
+    expect(filterPlayersByName(players, 'li')).toEqual([players[0], players[2]])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildSnakeQueue
+// ---------------------------------------------------------------------------
+describe('buildSnakeQueue', () => {
+  it('returns empty for empty teams', () => {
+    expect(buildSnakeQueue([], 5)).toEqual([])
+  })
+
+  it('returns empty for zero totalPicks', () => {
+    expect(buildSnakeQueue(['A', 'B'], 0)).toEqual([])
+  })
+
+  it('follows forward-reverse snake pattern for 3 teams 6 picks', () => {
+    expect(buildSnakeQueue(['T1', 'T2', 'T3'], 6)).toEqual(
+      ['T1', 'T2', 'T3', 'T3', 'T2', 'T1']
+    )
+  })
+
+  it('handles a single team', () => {
+    expect(buildSnakeQueue(['T1'], 3)).toEqual(['T1', 'T1', 'T1'])
+  })
+
+  it('handles a partial last round', () => {
+    expect(buildSnakeQueue(['T1', 'T2', 'T3'], 4)).toEqual(['T1', 'T2', 'T3', 'T3'])
+  })
+
+  it('handles two teams across 4 picks', () => {
+    expect(buildSnakeQueue(['A', 'B'], 4)).toEqual(['A', 'B', 'B', 'A'])
   })
 })
