@@ -70,8 +70,8 @@ export function startOAuthCallbackServer(opts: OAuthCallbackServerOpts = {}): Pr
             res.end(
               '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem">' +
               (isError
-                ? '<h2>Authorization failed. Please close this tab and try again in Tourney App.</h2>'
-                : '<h2>Connected! You can close this tab and return to Tourney App.</h2>') +
+                ? '<h2>Authorization failed. Please close this tab and try again in The Colosseum.</h2>'
+                : '<h2>Connected! You can close this tab and return to The Colosseum.</h2>') +
               '</body></html>'
             )
 
