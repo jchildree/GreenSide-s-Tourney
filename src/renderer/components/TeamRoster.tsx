@@ -4,6 +4,7 @@ import type { Team } from '../../shared/types'
 interface TeamRosterProps {
   teams: Team[]
   allPlayers?: string[]
+  highlightedTeam?: string
   onRenameTeam?: (oldName: string, newName: string) => void
   onRemovePlayer?: (teamName: string, playerName: string) => void
   onAddPlayer?: (teamName: string, playerName: string) => void
@@ -11,8 +12,8 @@ interface TeamRosterProps {
 
 interface TeamCardProps {
   team: Team
-  /** Players not assigned to ANY team — computed by TeamRoster and passed down. */
   unassignedPlayers: string[]
+  highlighted?: boolean
   onRenameTeam?: (oldName: string, newName: string) => void
   onRemovePlayer?: (teamName: string, playerName: string) => void
   onAddPlayer?: (teamName: string, playerName: string) => void
@@ -21,6 +22,7 @@ interface TeamCardProps {
 function TeamCard({
   team,
   unassignedPlayers,
+  highlighted = false,
   onRenameTeam,
   onRemovePlayer,
   onAddPlayer,
@@ -58,7 +60,11 @@ function TeamCard({
   }
 
   return (
-    <div className="card" style={{ borderColor: 'rgba(200, 169, 110, 0.2)', position: 'relative' }}>
+    <div className="card" style={{
+      borderColor: highlighted ? 'var(--color-gold)' : 'rgba(200, 169, 110, 0.2)',
+      boxShadow: highlighted ? '0 0 8px rgba(200, 169, 110, 0.35)' : 'none',
+      position: 'relative',
+    }}>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid rgba(200, 169, 110, 0.2)', paddingBottom: '0.25rem' }}>
         {editMode && onRenameTeam ? (
@@ -164,6 +170,7 @@ function TeamCard({
 export function TeamRoster({
   teams,
   allPlayers,
+  highlightedTeam,
   onRenameTeam,
   onRemovePlayer,
   onAddPlayer,
@@ -184,6 +191,7 @@ export function TeamRoster({
           key={team.name}
           team={team}
           unassignedPlayers={trulyUnassigned}
+          highlighted={highlightedTeam === team.name}
           onRenameTeam={onRenameTeam}
           onRemovePlayer={onRemovePlayer}
           onAddPlayer={onAddPlayer}
