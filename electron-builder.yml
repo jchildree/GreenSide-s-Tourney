@@ -1,5 +1,5 @@
 appId: com.greenside.gametourn
-productName: Game Tourney Dashboard
+productName: The Colosseum
 directories:
   output: dist
 files:
@@ -7,6 +7,7 @@ files:
   - package.json
 win:
   target: nsis
+  icon: build/icon.png
 nsis:
   oneClick: false
   perMachine: false

@@ -81,7 +81,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }): JSX.Element {
   return (
     <div>
       <h1 style={{ color: 'var(--color-gold)', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-        Welcome to Tourney App
+        Welcome to The Colosseum
       </h1>
       <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
         This one-time setup connects two services so you can run tournaments end-to-end:

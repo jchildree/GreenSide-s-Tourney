@@ -108,7 +108,7 @@ export function App(): JSX.Element {
             lineHeight: 1,
             margin: 0,
           }}>
-            Tourney
+            The Colosseum
           </h1>
           <p style={{
             color: 'var(--color-muted)',
