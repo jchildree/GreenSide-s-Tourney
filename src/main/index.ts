@@ -11,6 +11,7 @@ function createWindow(): BrowserWindow {
     width: 1280,
     height: 800,
     show: false,
+    icon: join(__dirname, '../../build/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
