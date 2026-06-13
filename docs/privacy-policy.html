@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - The Colosseum</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; }
+    .meta { color: #555; font-size: 0.9rem; margin-bottom: 2rem; }
+    ul { padding-left: 1.5rem; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Application: The Colosseum - Last updated: June 13, 2026</p>
+
+  <h2>Overview</h2>
+  <p>
+    The Colosseum is a desktop application for managing custom video game tournaments.
+    This policy explains what information the app handles, where it is stored, and how it is used.
+  </p>
+
+  <h2>Information We Collect</h2>
+  <p>The app collects only information you enter directly:</p>
+  <ul>
+    <li><strong>Tournament details</strong> - name, game, date/time, player limits, stream link</li>
+    <li><strong>Player information</strong> - player names and Discord handles submitted via Google Forms</li>
+    <li><strong>Team and draft data</strong> - team names and draft picks you configure</li>
+    <li><strong>Account credentials</strong> - OAuth tokens for Challonge and Google (see below)</li>
+    <li><strong>App preferences</strong> - theme and background image</li>
+  </ul>
+
+  <h2>How Information Is Stored</h2>
+  <p>
+    All data is stored <strong>locally on your device only</strong>. Nothing is uploaded to
+    our servers because we do not operate any servers.
+  </p>
+  <ul>
+    <li>Tournament, player, and team data is stored in a local application data file on your computer.</li>
+    <li>
+      OAuth credentials (Challonge and Google tokens) are stored in an encrypted file on your device
+      using Electron's <code>safeStorage</code> API, which uses your operating system's built-in
+      encryption (DPAPI on Windows). These credentials are never transmitted to anyone other than
+      the respective service (Challonge or Google).
+    </li>
+  </ul>
+
+  <h2>How Information Is Used</h2>
+  <p>Information you enter is used solely to:</p>
+  <ul>
+    <li>Display your tournament dashboard within the app</li>
+    <li>Update your Google Form with tournament details via the Google Forms API</li>
+    <li>Create and update your Challonge bracket via the Challonge REST API</li>
+  </ul>
+  <p>No information is used for advertising, profiling, or any purpose beyond operating the app's features.</p>
+
+  <h2>Third-Party Services</h2>
+  <p>The app connects to these external services on your behalf:</p>
+  <ul>
+    <li>
+      <strong>Challonge (Fandom, Inc.)</strong> - receives tournament name, team names, player names,
+      dates, and stream link to populate your bracket.
+      See <a href="https://fandom.com/privacy-policy" target="_blank" rel="noopener noreferrer">Fandom's Privacy Policy</a>.
+    </li>
+    <li>
+      <strong>Google (Alphabet Inc.)</strong> - receives tournament configuration data to update
+      your Google Form.
+      See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.
+    </li>
+  </ul>
+  <p>
+    We do not control how these services handle data once it is transmitted to them.
+    Your use of those services is governed by their respective privacy policies.
+  </p>
+
+  <h2>Data Sharing</h2>
+  <p>
+    We do not sell, share, or transfer your data to any third party beyond the two services
+    listed above, and only as needed to operate the features you use.
+  </p>
+
+  <h2>Analytics and Telemetry</h2>
+  <p>
+    The Colosseum does not include any analytics, crash reporting, or telemetry.
+    No usage data is sent anywhere.
+  </p>
+
+  <h2>Data Retention and Deletion</h2>
+  <p>
+    All app data lives on your device. You can delete it at any time by uninstalling the app
+    or manually removing the application data folder. Uninstalling the app removes all stored
+    preferences and credentials.
+  </p>
+
+  <h2>Children's Privacy</h2>
+  <p>
+    The Colosseum is intended for use by administrators managing game tournaments.
+    The app does not knowingly collect personal information from children under 13.
+  </p>
+
+  <h2>Changes to This Policy</h2>
+  <p>
+    If this policy changes materially, we will update the "Last updated" date above.
+    Continued use of the app after changes constitutes acceptance of the updated policy.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about this privacy policy? Contact:
+    <a href="mailto:jchildree87@gmail.com">jchildree87@gmail.com</a>
+  </p>
+</body>
+</html>
