@@ -1,4 +1,4 @@
-import type { DraftPick, Team } from '../../shared/types'
+import type { DraftPick, Team, Player } from '../../shared/types'
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -121,3 +121,11 @@ export function unassignedPlayers(allPlayers: string[], picks: DraftPick[]): str
     return true
   })
 }
+
+export function filterPlayersByName(players: Player[], query: string): Player[] {
+  if (!query) return players
+  const q = query.toLowerCase()
+  return players.filter(p => p.name.toLowerCase().includes(q))
+}
+
+export function buildSnakeQueue(_teamNames: string[], _totalPicks: number): string[] { return [] }

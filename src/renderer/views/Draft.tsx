@@ -11,6 +11,8 @@ import {
   snakeAssign,
   applyPicks,
   unassignedPlayers,
+  filterPlayersByName,
+  buildSnakeQueue,
 } from '../utils/draftModes'
 import type { Player, Team, DraftPick, Tourney, DraftSession } from '../../shared/types'
 import { DEFAULT_DRAFT_SESSION } from '../../shared/types'
@@ -148,6 +150,9 @@ export function Draft(): JSX.Element {
     setPicks([])
   }
 
+  const pendingSnakePick: string | null = null
+  function handleSelectSnakePlayer(_name: string): void {}
+
   // Mode button style helper
   const modeBtn = (m: DraftMode): React.CSSProperties => ({
     padding: '0.35rem 0.85rem',
@@ -249,6 +254,8 @@ export function Draft(): JSX.Element {
             picks={picks}
             draggable={mode === 'manual'}
             dragActive={dragActive}
+            selectedPlayer={mode === 'snake' ? pendingSnakePick : null}
+            onSelectPlayer={mode === 'snake' ? handleSelectSnakePlayer : undefined}
           />
 
           {/* RIGHT: Teams */}
@@ -293,10 +300,14 @@ interface PlayerPoolProps {
   picks: DraftPick[]
   draggable: boolean
   dragActive: string | null
+  selectedPlayer?: string | null
+  onSelectPlayer?: (name: string) => void
 }
 
-function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps): JSX.Element {
+function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onSelectPlayer }: PlayerPoolProps): JSX.Element {
+  const [searchQuery, setSearchQuery] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })
+  const displayed = filterPlayersByName(players, searchQuery)
 
   return (
     <div
@@ -320,15 +331,33 @@ function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps):
         textTransform: 'uppercase',
         margin: '0 0 0.6rem',
       }}>
-        Player Pool ({players.length})
+        Player Pool ({searchQuery ? `${displayed.length} / ${players.length}` : players.length})
       </p>
+      <input
+        type="search"
+        placeholder="Search players..."
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          background: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '0.3rem',
+          color: 'var(--color-text)',
+          fontSize: '0.8rem',
+          padding: '0.3rem 0.5rem',
+          marginBottom: '0.5rem',
+          outline: 'none',
+        }}
+      />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         {players.length === 0 && (
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>
             No players. Fetch signups in Control tab.
           </p>
         )}
-        {players.map(player => {
+        {displayed.map(player => {
           const pick = picks.find(p => p.playerName === player.name)
           if (draggable) {
             return (
@@ -340,12 +369,15 @@ function PlayerPool({ players, picks, draggable, dragActive }: PlayerPoolProps):
               />
             )
           }
+          const isAssigned = !!pick
           return (
             <PlayerCard
               key={player.name}
               player={player}
-              assigned={!!pick}
+              assigned={isAssigned}
               teamName={pick?.teamName}
+              selected={!isAssigned && selectedPlayer === player.name}
+              onClick={!isAssigned && onSelectPlayer ? () => onSelectPlayer(player.name) : undefined}
             />
           )
         })}
