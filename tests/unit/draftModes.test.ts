@@ -271,7 +271,7 @@ describe('filterPlayersByName', () => {
 // ---------------------------------------------------------------------------
 // buildSnakeQueue
 // ---------------------------------------------------------------------------
-describe.skip('buildSnakeQueue', () => {
+describe('buildSnakeQueue', () => {
   it('returns empty for empty teams', () => {
     expect(buildSnakeQueue([], 5)).toEqual([])
   })

@@ -128,4 +128,12 @@ export function filterPlayersByName(players: Player[], query: string): Player[] 
   return players.filter(p => p.name.toLowerCase().includes(q))
 }
 
-export function buildSnakeQueue(_teamNames: string[], _totalPicks: number): string[] { return [] }
+export function buildSnakeQueue(teamNames: string[], totalPicks: number): string[] {
+  if (teamNames.length === 0 || totalPicks <= 0) return []
+  const n = teamNames.length
+  return Array.from({ length: totalPicks }, (_, i) => {
+    const round = Math.floor(i / n)
+    const pos = i % n
+    return teamNames[round % 2 === 0 ? pos : n - 1 - pos]
+  })
+}
