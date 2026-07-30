@@ -1,7 +1,7 @@
 {
-  "name": "tourney-app",
-  "version": "1.0.0",
-  "description": "Custom Game Tournament Dashboard",
+  "name": "the-colosseum",
+  "version": "0.1.0",
+  "description": "The Colosseum - Custom Game Tournament Dashboard",
   "main": "out/main/index.js",
   "author": "Joseph Childree",
   "private": true,
