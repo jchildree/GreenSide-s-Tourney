@@ -49,6 +49,18 @@ export async function startTournament(params: StartParams): Promise<void> {
   }
 }
 
+export async function startTournamentV1(params: { apiKey: string; tournamentId: string }): Promise<void> {
+  const { apiKey, tournamentId } = params
+  const resp = await fetch(
+    `https://api.challonge.com/v1/tournaments/${tournamentId}/start.json?api_key=${apiKey}`,
+    { method: 'POST' }
+  )
+  if (!resp.ok) {
+    const body = await resp.text()
+    throw new Error(`Failed to start tournament (${resp.status}): ${body}`)
+  }
+}
+
 async function syncParticipants(
   tournamentId: string,
   teams: Team[],
@@ -227,6 +239,62 @@ export async function fetchMatches(
   return { matches, participants }
 }
 
+interface FetchMatchesV1Params {
+  apiKey: string
+  tournamentId: string
+}
+
+export async function fetchMatchesV1(
+  params: FetchMatchesV1Params
+): Promise<{ matches: ChallongeMatch[]; participants: ChallongeParticipant[] }> {
+  const { apiKey, tournamentId } = params
+  const base = `https://api.challonge.com/v1/tournaments/${tournamentId}`
+  const [matchesResp, partsResp] = await Promise.all([
+    fetch(`${base}/matches.json?api_key=${apiKey}`),
+    fetch(`${base}/participants.json?api_key=${apiKey}`),
+  ])
+  if (!matchesResp.ok) {
+    throw new Error(`Failed to fetch matches (${matchesResp.status}): ${await matchesResp.text()}`)
+  }
+  if (!partsResp.ok) {
+    throw new Error(`Failed to fetch participants (${partsResp.status}): ${await partsResp.text()}`)
+  }
+
+  const matchesData = (await matchesResp.json()) as Array<{
+    match: {
+      id: number
+      state: string
+      round: number
+      player1_id: number | null
+      player2_id: number | null
+      winner_id: number | null
+      scores_csv: string | null
+      suggested_play_order: number | null
+    }
+  }>
+  const partsData = (await partsResp.json()) as Array<{
+    participant: { id: number; name: string }
+  }>
+
+  const matches: ChallongeMatch[] = matchesData.map(m => ({
+    id: String(m.match.id),
+    state: m.match.state as ChallongeMatch['state'],
+    round: m.match.round,
+    player1Id: m.match.player1_id != null ? String(m.match.player1_id) : null,
+    player2Id: m.match.player2_id != null ? String(m.match.player2_id) : null,
+    winnerId: m.match.winner_id != null ? String(m.match.winner_id) : null,
+    scoresCsv: m.match.scores_csv,
+    suggestedPlayOrder: m.match.suggested_play_order,
+  }))
+
+  const participants: ChallongeParticipant[] = partsData.map(p => ({
+    id: String(p.participant.id),
+    name: p.participant.name,
+  }))
+
+  return { matches, participants }
+}
+
 interface UpdateMatchParams {
   refreshToken: string
   tournamentId: string
@@ -261,6 +329,27 @@ export async function updateMatch(params: UpdateMatchParams): Promise<void> {
       },
     }),
   })
+  if (!resp.ok) {
+    throw new Error(`Failed to update match (${resp.status}): ${await resp.text()}`)
+  }
+}
+
+export async function updateMatchV1(params: {
+  apiKey: string
+  tournamentId: string
+  matchId: string
+  scoresCsv: string
+  winnerId: string
+}): Promise<void> {
+  const { apiKey, tournamentId, matchId, scoresCsv, winnerId } = params
+  const resp = await fetch(
+    `https://api.challonge.com/v1/tournaments/${tournamentId}/matches/${matchId}.json?api_key=${apiKey}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ match: { scores_csv: scoresCsv, winner_id: parseInt(winnerId, 10) } }),
+    }
+  )
   if (!resp.ok) {
     throw new Error(`Failed to update match (${resp.status}): ${await resp.text()}`)
   }

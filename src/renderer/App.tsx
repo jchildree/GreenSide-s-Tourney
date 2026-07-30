@@ -17,7 +17,7 @@ const NAV: { id: View; label: string }[] = [
   { id: 'bracket', label: 'Bracket' },
   { id: 'control', label: 'Control' },
   { id: 'settings', label: 'Settings' },
-  { id: 'matches', label: 'Matches' },
+  { id: 'matches', label: 'Brackets' },
 ]
 
 export function App(): JSX.Element {

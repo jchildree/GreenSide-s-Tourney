@@ -1,11 +1,11 @@
 import { ipcMain, shell } from 'electron'
 import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData, readConfig, saveConfig } from './store'
 import { getCredential, saveCredential, deleteCredential } from './keychain'
-import { pushToChallonge, startTournament, fetchMatches, updateMatch } from './integrations/challonge'
+import { pushToChallonge, startTournament, startTournamentV1, fetchMatches, fetchMatchesV1, updateMatch, updateMatchV1 } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
 import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
-import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from './auth/oauth-config'
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET, CHALLONGE_API_KEY } from './auth/oauth-config'
 import { backgroundDataUrl, chooseBackground, removeBackground } from './appearance'
 import type { Tourney, DraftPick, OnboardingStatus, DraftSession, ThemeId, Appearance } from '../shared/types'
 import { CRED, CHALLONGE_CREDENTIAL_EXPIRED, GOOGLE_CREDENTIAL_EXPIRED, THEME_IDS } from '../shared/types'
@@ -46,17 +46,21 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('start-tournament', async () => {
-    const refreshToken = getCredential(CRED.challongeRefresh)
-    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     if (!sync.challongeTournamentId) throw new Error('No tournament pushed yet -- push to Challonge first')
-    await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
-      startTournament({ refreshToken, tournamentId: sync.challongeTournamentId! })
-    )
+    if (CHALLONGE_API_KEY) {
+      await startTournamentV1({ apiKey: CHALLONGE_API_KEY, tournamentId: sync.challongeTournamentId })
+    } else {
+      const refreshToken = getCredential(CRED.challongeRefresh)
+      if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
+      await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
+        startTournament({ refreshToken, tournamentId: sync.challongeTournamentId! })
+      )
+    }
     try {
       saveSync({ ...sync, tournamentStartedAt: new Date().toISOString() })
     } catch {
-      // Tournament started on Challonge; sync state loss is recoverable on next push
+      // intentionally swallowed
     }
   })
 
@@ -91,7 +95,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('check-onboarding', (): OnboardingStatus => {
     const googleConnected = getCredential(CRED.google) !== null
-    const challongeConnected = getCredential(CRED.challongeRefresh) !== null
+    const challongeConnected = !!CHALLONGE_API_KEY || getCredential(CRED.challongeRefresh) !== null
     return {
       googleConnected,
       challongeConnected,
@@ -152,22 +156,42 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('get-matches', async () => {
-    const refreshToken = getCredential(CRED.challongeRefresh)
-    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     if (!sync.challongeTournamentId) throw new Error('No tournament ID -- push to Challonge first')
-    return withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
-      fetchMatches({ refreshToken, tournamentId: sync.challongeTournamentId! })
-    )
+    if (CHALLONGE_API_KEY) {
+      return fetchMatchesV1({ apiKey: CHALLONGE_API_KEY, tournamentId: sync.challongeTournamentId })
+    }
+    const refreshToken = getCredential(CRED.challongeRefresh)
+    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
+    try {
+      return await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
+        fetchMatches({ refreshToken, tournamentId: sync.challongeTournamentId! })
+      )
+    } catch (err) {
+      if ((err as Error).message === CHALLONGE_CREDENTIAL_EXPIRED) {
+        throw new Error('Challonge session expired -- re-authenticate in Settings')
+      }
+      throw err
+    }
   })
 
   ipcMain.handle('update-match', async (_e, matchId: string, scoresCsv: string, winnerId: string) => {
-    const refreshToken = getCredential(CRED.challongeRefresh)
-    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
     const sync = readSync()
     if (!sync.challongeTournamentId) throw new Error('No tournament ID -- push to Challonge first')
-    return withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
-      updateMatch({ refreshToken, tournamentId: sync.challongeTournamentId!, matchId, scoresCsv, winnerId })
-    )
+    if (CHALLONGE_API_KEY) {
+      return updateMatchV1({ apiKey: CHALLONGE_API_KEY, tournamentId: sync.challongeTournamentId, matchId, scoresCsv, winnerId })
+    }
+    const refreshToken = getCredential(CRED.challongeRefresh)
+    if (!refreshToken) throw new Error('Challonge not connected -- re-authenticate in Settings')
+    try {
+      return await withCredentialGuard(CRED.challongeRefresh, CHALLONGE_CREDENTIAL_EXPIRED, () =>
+        updateMatch({ refreshToken, tournamentId: sync.challongeTournamentId!, matchId, scoresCsv, winnerId })
+      )
+    } catch (err) {
+      if ((err as Error).message === CHALLONGE_CREDENTIAL_EXPIRED) {
+        throw new Error('Challonge session expired -- re-authenticate in Settings')
+      }
+      throw err
+    }
   })
 }

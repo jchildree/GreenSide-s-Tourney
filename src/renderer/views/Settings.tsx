@@ -4,6 +4,7 @@ import { CRED } from '../../shared/types'
 import { THEMES } from '../theme'
 import type { ThemeId } from '../../shared/types'
 
+
 function ServiceRow({
   label,
   connected,

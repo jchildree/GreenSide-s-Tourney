@@ -6,6 +6,8 @@ interface PlayerCardProps {
   assigned?: boolean
   teamName?: string
   draggable?: boolean
+  selected?: boolean
+  onClick?: () => void
   style?: React.CSSProperties
 }
 
@@ -14,6 +16,8 @@ export function PlayerCard({
   assigned = false,
   teamName,
   draggable = false,
+  selected = false,
+  onClick,
   style,
 }: PlayerCardProps): JSX.Element {
   const [hovered, setHovered] = useState(false)
@@ -33,8 +37,6 @@ export function PlayerCard({
   const badgeColor = isVisuallyAssigned ? '#1a1a1a' : 'var(--color-muted)'
   const badgeLabel = isVisuallyAssigned ? teamName : 'Unassigned'
 
-  const boxShadow = draggable && hovered ? '0 0 0 1px var(--color-gold)' : 'none'
-
   return (
     <div
       style={{
@@ -43,15 +45,16 @@ export function PlayerCard({
         width: '100%',
         minHeight: '80px',
         background: 'var(--color-card)',
-        border: '1px solid var(--color-border)',
+        border: `1px solid ${selected ? 'var(--color-gold)' : 'var(--color-border)'}`,
         borderRadius: '0.4rem',
         overflow: 'hidden',
-        boxShadow,
-        cursor: draggable ? 'grab' : 'default',
+        boxShadow: selected ? '0 0 0 1px var(--color-gold)' : draggable && hovered ? '0 0 0 1px var(--color-gold)' : 'none',
+        cursor: onClick ? 'pointer' : draggable ? 'grab' : 'default',
         boxSizing: 'border-box',
         position: 'relative',
         ...style,
       }}
+      onClick={onClick}
       onMouseEnter={draggable ? () => setHovered(true) : undefined}
       onMouseLeave={draggable ? () => setHovered(false) : undefined}
     >
