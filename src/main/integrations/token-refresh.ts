@@ -1,9 +1,15 @@
+import type { CredentialService } from '../../shared/types'
+import { saveCredential } from '../keychain'
+
 interface TokenRefreshOpts {
   tokenUrl: string
   clientId: string
   clientSecret: string
   refreshToken: string
   serviceName: string
+  // Providers that rotate refresh tokens (e.g. Challonge) return a new one on
+  // each refresh and invalidate the old. Persist it or the next call gets invalid_grant.
+  credService?: CredentialService
 }
 
 export async function refreshAccessToken(opts: TokenRefreshOpts): Promise<string> {
@@ -30,7 +36,8 @@ export async function refreshAccessToken(opts: TokenRefreshOpts): Promise<string
     }
     throw new Error(`${opts.serviceName} token refresh failed (${resp.status}): ${body}`)
   }
-  const data = (await resp.json()) as { access_token: string }
+  const data = (await resp.json()) as { access_token: string; refresh_token?: string }
   if (!data.access_token) throw new Error(`${opts.serviceName} did not return an access token`)
+  if (opts.credService && data.refresh_token) saveCredential(opts.credService, data.refresh_token)
   return data.access_token
 }

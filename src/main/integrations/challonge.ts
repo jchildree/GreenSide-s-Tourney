@@ -1,5 +1,6 @@
 import { CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET } from '../auth/oauth-config'
 import type { Draft, Team, Tourney, ChallongeMatch, ChallongeParticipant } from '../../shared/types'
+import { CRED } from '../../shared/types'
 import { refreshAccessToken } from './token-refresh'
 
 const API_BASE = 'https://api.challonge.com/v2.1'
@@ -37,6 +38,7 @@ export async function startTournament(params: StartParams): Promise<void> {
     clientSecret: CHALLONGE_CLIENT_SECRET,
     refreshToken,
     serviceName: 'Challonge',
+    credService: CRED.challongeRefresh,
   })
   const hdrs = authHeaders(accessToken)
   const resp = await fetch(`${API_BASE}/tournaments/${tournamentId}/start.json`, {
@@ -108,6 +110,7 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
     clientSecret: CHALLONGE_CLIENT_SECRET,
     refreshToken,
     serviceName: 'Challonge',
+    credService: CRED.challongeRefresh,
   })
   const hdrs = authHeaders(accessToken)
 
@@ -187,6 +190,7 @@ export async function fetchMatches(
     clientSecret: CHALLONGE_CLIENT_SECRET,
     refreshToken,
     serviceName: 'Challonge',
+    credService: CRED.challongeRefresh,
   })
   const hdrs = authHeaders(accessToken)
 
@@ -314,6 +318,7 @@ export async function updateMatch(params: UpdateMatchParams): Promise<void> {
     clientSecret: CHALLONGE_CLIENT_SECRET,
     refreshToken,
     serviceName: 'Challonge',
+    credService: CRED.challongeRefresh,
   })
   const hdrs = authHeaders(accessToken)
   const resp = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${matchId}.json`, {

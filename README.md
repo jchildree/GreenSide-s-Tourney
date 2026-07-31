@@ -33,6 +33,23 @@ npm run dev
 
 First launch will prompt for Google and Challonge credentials.
 
+## OAuth setup
+
+The app needs a real Google OAuth client to authorize Forms access. Without one,
+the connect flow fails with `Error 401: invalid_client`.
+
+1. Copy `src/main/auth/oauth-config.example.ts` to `src/main/auth/oauth-config.ts`
+   (gitignored, so secrets stay local).
+2. In the [Google Cloud Console](https://console.cloud.google.com/): create a
+   project, then enable the **Google Forms API** under APIs & Services > Library.
+3. Configure the OAuth consent screen (User type: External) and add your Google
+   account as a **Test user**.
+4. Create credentials > OAuth client ID with application type **Desktop app**.
+   Desktop is required: the app redirects to a `http://127.0.0.1:{port}/callback`
+   loopback URL, which Google only allows for Desktop clients. A Web client fails
+   with `redirect_uri_mismatch`.
+5. Paste the generated Client ID and Client secret into `oauth-config.ts`.
+
 ## Scripts
 
 ```bash
