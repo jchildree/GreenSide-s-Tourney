@@ -88,11 +88,14 @@ export interface AppConfig {
   challongeCommunityUrl: string
   theme: ThemeId
   backgroundImage: string | null
+  /** 0-100. How strongly the background image shows through. */
+  backgroundOpacity: number
 }
 
 export interface Appearance {
   theme: ThemeId
   backgroundDataUrl: string | null
+  backgroundOpacity: number
 }
 
 export interface OnboardingStatus {
@@ -105,6 +108,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   challongeCommunityUrl: '',
   theme: 'green',
   backgroundImage: null,
+  backgroundOpacity: 35,
 }
 
 export const DEFAULT_ONBOARDING_STATUS: OnboardingStatus = {

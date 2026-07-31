@@ -52,6 +52,8 @@ const api = {
   setTheme: (theme: ThemeId): Promise<void> => ipcRenderer.invoke('set-theme', theme),
   chooseBackground: (): Promise<string | null> => ipcRenderer.invoke('choose-background'),
   removeBackground: (): Promise<void> => ipcRenderer.invoke('remove-background'),
+  setBackgroundOpacity: (value: number): Promise<void> =>
+    ipcRenderer.invoke('set-background-opacity', value),
 }
 
 contextBridge.exposeInMainWorld('api', api)

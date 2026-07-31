@@ -105,7 +105,7 @@ describe('Settings view', () => {
 
   it('remove background calls api and clears upward', async () => {
     const onBackgroundChange = vi.fn()
-    render(<Settings theme="green" onThemeChange={vi.fn()} backgroundSet={true} onBackgroundChange={onBackgroundChange} />)
+    render(<Settings theme="green" onThemeChange={vi.fn()} backgroundUrl="data:image/png;base64,abc" onBackgroundChange={onBackgroundChange} />)
     await userEvent.click(screen.getByTestId('remove-background'))
     await waitFor(() => {
       expect(window.api.removeBackground).toHaveBeenCalled()

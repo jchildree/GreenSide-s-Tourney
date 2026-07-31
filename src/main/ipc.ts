@@ -121,12 +121,17 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('get-appearance', (): Appearance => {
     const config = readConfig()
-    return { theme: config.theme, backgroundDataUrl: backgroundDataUrl(config.backgroundImage) }
+    return { theme: config.theme, backgroundDataUrl: backgroundDataUrl(config.backgroundImage), backgroundOpacity: config.backgroundOpacity }
   })
 
   ipcMain.handle('set-theme', (_e, theme: ThemeId) => {
     if (!THEME_IDS.includes(theme)) throw new Error(`Unknown theme: ${theme}`)
     saveConfig({ ...readConfig(), theme })
+  })
+
+  ipcMain.handle('set-background-opacity', (_e, value: number) => {
+    const clamped = Math.min(100, Math.max(0, Math.round(Number(value) || 0)))
+    saveConfig({ ...readConfig(), backgroundOpacity: clamped })
   })
 
   ipcMain.handle('choose-background', async (): Promise<string | null> => {

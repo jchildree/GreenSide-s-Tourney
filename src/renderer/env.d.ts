@@ -32,6 +32,7 @@ declare global {
       setTheme: (theme: ThemeId) => Promise<void>
       chooseBackground: () => Promise<string | null>
       removeBackground: () => Promise<void>
+      setBackgroundOpacity: (value: number) => Promise<void>
     }
   }
 }

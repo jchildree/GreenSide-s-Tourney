@@ -36,6 +36,11 @@ function playBeep(): void {
   }
 }
 
+/**
+ * Same behaviour as before — click the clock to type a time, slider or number
+ * box for the per-pick duration. Only the type sizes and labels changed, so the
+ * controls are readable across the room on draft night.
+ */
 export function Timer({
   durationSeconds,
   remainingSeconds,
@@ -49,11 +54,8 @@ export function Timer({
   const expiredFired = useRef(false)
   const isExpired = remainingSeconds === 0
 
-  // Reset the expiredFired guard when the timer is reset (remaining goes back up)
   useEffect(() => {
-    if (remainingSeconds > 0) {
-      expiredFired.current = false
-    }
+    if (remainingSeconds > 0) expiredFired.current = false
   }, [remainingSeconds])
 
   const remainingRef = useRef(remainingSeconds)
@@ -62,7 +64,6 @@ export function Timer({
   const onTickRef = useRef(onTick)
   useEffect(() => { onTickRef.current = onTick }, [onTick])
 
-  // Interval tick
   useEffect(() => {
     if (!running) return
     const id = setInterval(() => {
@@ -71,14 +72,13 @@ export function Timer({
     return () => clearInterval(id)
   }, [running])
 
-  // Expire side-effects
   useEffect(() => {
     if (isExpired && !expiredFired.current) {
       expiredFired.current = true
       playBeep()
       try {
         confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 } })
-      } catch (_) {}
+      } catch (_) { /* confetti unavailable in tests */ }
       onExpire()
     }
   }, [isExpired, onExpire])
@@ -94,10 +94,7 @@ export function Timer({
       const parsed = parseInt(colonMatch[1], 10) * 60 + parseInt(colonMatch[2], 10)
       return Math.min(3600, Math.max(10, parsed))
     }
-    const intMatch = s.match(/^\d+$/)
-    if (intMatch) {
-      return Math.min(3600, Math.max(10, parseInt(s, 10)))
-    }
+    if (/^\d+$/.test(s)) return Math.min(3600, Math.max(10, parseInt(s, 10)))
     return null
   }
 
@@ -123,8 +120,18 @@ export function Timer({
 
   const clampDuration = (v: number): number => Math.min(3600, Math.max(10, v))
 
+  const clockStyle = {
+    fontFamily: 'ui-monospace, monospace',
+    fontSize: '3rem',
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums' as const,
+    letterSpacing: '-0.02em',
+    color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
+    lineHeight: 1,
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
       {editing ? (
         <input
           ref={inputRef}
@@ -136,44 +143,22 @@ export function Timer({
             if (e.key === 'Enter') commitEdit()
             if (e.key === 'Escape') { cancelRef.current = true; setEditing(false) }
           }}
-          style={{
-            fontFamily: 'monospace',
-            fontSize: '3rem',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em',
-            color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
-            border: 'none',
-            background: 'transparent',
-            outline: 'none',
-            textAlign: 'center',
-            width: '5ch',
-            padding: 0,
-          }}
+          aria-label="Pick time"
+          style={{ ...clockStyle, border: 'none', background: 'transparent', outline: 'none', textAlign: 'center', width: '5ch', padding: 0 }}
         />
       ) : (
-        <span
-          title="Click to edit"
+        <button
           onClick={enterEdit}
-          style={{
-            fontFamily: 'monospace',
-            fontSize: '3rem',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em',
-            color: isExpired ? 'var(--color-danger)' : 'var(--color-primary)',
-            transition: 'color 300ms ease',
-            cursor: 'pointer',
-          }}
+          title="Click to type a time"
+          style={{ ...clockStyle, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'color 300ms ease' }}
         >
           {format(remainingSeconds)}
-        </span>
+        </button>
       )}
 
-      {/* Duration controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <label style={{ fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--color-primary)', opacity: 0.7 }}>
-          DURATION
+        <label htmlFor="pick-seconds" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-silver)' }}>
+          Seconds per pick
         </label>
         <input
           type="range"
@@ -182,45 +167,54 @@ export function Timer({
           step={1}
           value={durationSeconds}
           onChange={e => onDurationChange(clampDuration(Number(e.target.value)))}
-          style={{ width: '8rem', accentColor: 'var(--color-primary)' }}
+          aria-label="Seconds per pick"
+          style={{ width: '7rem', accentColor: 'var(--color-primary)' }}
         />
         <input
+          id="pick-seconds"
           type="number"
           min={10}
           max={3600}
           value={durationSeconds}
           onChange={e => onDurationChange(clampDuration(Number(e.target.value)))}
           style={{
-            width: '4rem',
+            width: '4.25rem',
             background: 'transparent',
-            border: '1px solid rgba(34,197,94,0.4)',
+            border: '1px solid var(--color-border)',
             color: 'var(--color-primary)',
-            fontFamily: 'monospace',
-            fontSize: '0.85rem',
+            fontFamily: 'ui-monospace, monospace',
+            fontSize: '0.95rem',
             textAlign: 'center',
-            borderRadius: '4px',
-            padding: '2px 4px',
+            borderRadius: '0.4rem',
+            padding: '0.3rem 0.4rem',
           }}
         />
-        <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', opacity: 0.5 }}>s</span>
       </div>
 
-      {/* Action buttons */}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button
-          className="btn-ghost"
-          onClick={onToggle}
-          style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}
-        >
-          {running ? 'Pause' : 'Start'}
-        </button>
-        <button
-          className="btn-ghost"
-          onClick={onReset}
-          style={{ fontSize: '0.7rem', letterSpacing: '0.15em' }}
-        >
-          Reset
-        </button>
+        {[
+          { label: running ? 'Pause' : 'Start', onClick: onToggle },
+          { label: 'Reset', onClick: onReset },
+        ].map(b => (
+          <button
+            key={b.label}
+            onClick={b.onClick}
+            style={{
+              padding: '0.45rem 0.95rem',
+              borderRadius: '0.45rem',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              color: 'var(--color-silver)',
+              background: 'transparent',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            {b.label}
+          </button>
+        ))}
       </div>
     </div>
   )

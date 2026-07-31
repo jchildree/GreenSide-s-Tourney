@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
 import { Timer } from '../components/Timer'
 import { PlayerCard } from '../components/PlayerCard'
 import { TeamRoster } from '../components/TeamRoster'
 import { PickWheel } from '../components/PickWheel'
+import { GHOST_BUTTON, PRIMARY_BUTTON, VIEW_TITLE, disabledIf } from '../components/ui'
 import {
   computeTeamCount,
   autoNameTeams,
@@ -19,7 +21,24 @@ import { DEFAULT_DRAFT_SESSION } from '../../shared/types'
 
 type DraftMode = 'random' | 'snake' | 'manual'
 
-export function Draft(): JSX.Element {
+const MODE_LABELS: Record<DraftMode, string> = {
+  random: 'Random wheel',
+  snake: 'Snake draft',
+  manual: 'Manual',
+}
+
+const MODE_HINTS: Record<DraftMode, string> = {
+  random: 'Spin the wheel — each winner joins the next team in line. Or press “Assign all” to fill every team at once.',
+  snake: 'Teams pick in turn, and the order reverses each round. Spin or click a player, then confirm the pick.',
+  manual: 'Drag players from the pool onto a team. Drag them back to the pool to undo.',
+}
+
+interface DraftProps {
+  onChanged?: () => void
+}
+
+/** Step 3 — logic unchanged from the original view; layout and copy rebuilt. */
+export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
   const [signups, setSignups] = useState<Player[]>([])
   const [picks, setPicks] = useState<DraftPick[]>([])
   const [teamNames, setTeamNames] = useState<string[]>([])
@@ -37,25 +56,29 @@ export function Draft(): JSX.Element {
   const prevPickCountRef = useRef(0)
 
   useEffect(() => {
-    Promise.all([window.api.getSignups(), window.api.getDraft(), window.api.getTourney(), window.api.getDraftSession()])
-      .then(([s, d, t, session]) => {
-        setSignups(s)
-        setTourney(t)
-        sessionRef.current = session
-        setTimerDuration(session.timerDuration)
-        setRemainingSeconds(session.remainingSeconds)
-        if (d.teams.length > 0) {
-          setTeamNames(d.teams.map(tm => tm.name))
-          const restoredPicks: DraftPick[] = d.teams.flatMap(tm =>
-            tm.players.map((p, pi) => ({ playerName: p, teamName: tm.name, pickNumber: pi + 1 }))
-          )
-          setPicks(restoredPicks)
-        } else {
-          // Auto-generate teams
-          const count = computeTeamCount(s.length, t.teamSize ?? 4)
-          setTeamNames(autoNameTeams(count))
-        }
-      })
+    void Promise.all([
+      window.api.getSignups(),
+      window.api.getDraft(),
+      window.api.getTourney(),
+      window.api.getDraftSession(),
+    ]).then(([s, d, t, session]) => {
+      setSignups(s)
+      setTourney(t)
+      sessionRef.current = session
+      setTimerDuration(session.timerDuration)
+      setRemainingSeconds(session.remainingSeconds)
+      if (t.draftStyle) setMode(t.draftStyle as DraftMode)
+      if (d.teams.length > 0) {
+        setTeamNames(d.teams.map(tm => tm.name))
+        const restoredPicks: DraftPick[] = d.teams.flatMap(tm =>
+          tm.players.map((p, pi) => ({ playerName: p, teamName: tm.name, pickNumber: pi + 1 }))
+        )
+        setPicks(restoredPicks)
+      } else {
+        const count = computeTeamCount(s.length, t.teamSize ?? 4)
+        setTeamNames(autoNameTeams(count))
+      }
+    })
   }, [])
 
   const playerNames = signups.map(p => p.name)
@@ -64,7 +87,6 @@ export function Draft(): JSX.Element {
   const snakeQueue = buildSnakeQueue(teamNames, playerNames.length)
   const currentSnakeTeam = snakeQueue[snakePickIdx] ?? null
 
-  // Per-pick timer behavior: single pick restarts the countdown, bulk assign or reset stops it
   useEffect(() => {
     if (mode === 'snake') return
     const prev = prevPickCountRef.current
@@ -82,10 +104,9 @@ export function Draft(): JSX.Element {
     if (mode !== 'snake') {
       setPendingSnakePick(null)
       setTimerRunning(false)
-      // Sync baseline so the first non-snake pick doesn't misread the delta
       prevPickCountRef.current = picks.length
     }
-  }, [mode]) // picks.length intentionally omitted - only resets on mode change
+  }, [mode]) // picks.length intentionally omitted — only resets on mode change
 
   function handleDurationChange(seconds: number): void {
     setTimerDuration(seconds)
@@ -98,10 +119,7 @@ export function Draft(): JSX.Element {
   function advanceSnakePick(): void {
     const teamName = snakeQueue[snakePickIdx]
     if (pendingSnakePick && teamName) {
-      setPicks(prev => [
-        ...prev,
-        { playerName: pendingSnakePick, teamName, pickNumber: prev.length + 1 },
-      ])
+      setPicks(prev => [...prev, { playerName: pendingSnakePick, teamName, pickNumber: prev.length + 1 }])
     }
     setPendingSnakePick(null)
     setSnakePickIdx(prev => prev + 1)
@@ -118,39 +136,31 @@ export function Draft(): JSX.Element {
     setPendingSnakePick(playerName)
   }
 
-  // --- Random mode ---
   function handleAssignAll(): void {
-    const newPicks = randomAssign(playerNames, teamNames)
-    setPicks(newPicks)
+    setPicks(randomAssign(playerNames, teamNames))
   }
 
   function handleSpinComplete(playerName: string): void {
     setSpinning(false)
-    // Functional updater ensures nextTeam uses the latest picks count, not the stale closure value.
     setPicks(prev => {
       const nextTeam = teamNames[prev.length % teamNames.length]
       return [...prev, { playerName, teamName: nextTeam, pickNumber: prev.length + 1 }]
     })
   }
 
-  // --- Snake mode ---
   function handleSnakeAssign(): void {
-    const newPicks = snakeAssign(playerNames, teamNames)
-    setPicks(newPicks)
+    setPicks(snakeAssign(playerNames, teamNames))
   }
 
-  // --- Manual DnD ---
   function handleDragEnd(event: DragEndEvent): void {
     const { active, over } = event
     setDragActive(null)
     if (!over) return
     const playerName = active.id as string
-    const targetId = over.id as string // teamName or 'pool'
+    const targetId = over.id as string
     if (targetId === 'pool') {
-      // Return to pool
       setPicks(prev => prev.filter(p => p.playerName !== playerName))
     } else {
-      // Assign to team
       const existing = picks.find(p => p.playerName === playerName)
       if (existing?.teamName === targetId) return
       const newPicks = picks.filter(p => p.playerName !== playerName)
@@ -159,10 +169,9 @@ export function Draft(): JSX.Element {
     }
   }
 
-  // --- Team editing ---
   function handleRenameTeam(oldName: string, newName: string): void {
-    setTeamNames(prev => prev.map(n => n === oldName ? newName : n))
-    setPicks(prev => prev.map(p => p.teamName === oldName ? { ...p, teamName: newName } : p))
+    setTeamNames(prev => prev.map(n => (n === oldName ? newName : n)))
+    setPicks(prev => prev.map(p => (p.teamName === oldName ? { ...p, teamName: newName } : p)))
   }
 
   function handleRemovePlayer(teamName: string, playerName: string): void {
@@ -173,10 +182,10 @@ export function Draft(): JSX.Element {
     setPicks(prev => [...prev, { playerName, teamName, pickNumber: prev.length + 1 }])
   }
 
-  // --- Save ---
   async function handleSave(): Promise<void> {
     await window.api.saveDraft(picks)
     setStatus('Draft saved.')
+    onChanged?.()
     setTimeout(() => setStatus(''), 2500)
   }
 
@@ -186,117 +195,108 @@ export function Draft(): JSX.Element {
     setPendingSnakePick(null)
   }
 
-  // Mode button style helper
-  const modeBtn = (m: DraftMode): React.CSSProperties => ({
-    padding: '0.35rem 0.85rem',
-    fontSize: '0.75rem',
+  const modeBtn = (m: DraftMode): CSSProperties => ({
+    padding: '0.55rem 1rem',
+    fontSize: '0.9rem',
     fontWeight: 600,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    background: mode === m ? 'linear-gradient(160deg, #1e3a5f 0%, #1a2e4a 100%)' : 'transparent',
+    letterSpacing: '0.04em',
+    background: mode === m ? 'var(--color-card)' : 'transparent',
     color: mode === m ? 'var(--color-gold)' : 'var(--color-muted)',
-    border: '1px solid',
-    borderColor: mode === m ? 'var(--color-border)' : 'transparent',
-    borderRadius: '0.3rem',
+    border: '2px solid',
+    borderColor: mode === m ? 'var(--color-gold)' : 'var(--color-border)',
+    borderRadius: '0.55rem',
     cursor: 'pointer',
+    whiteSpace: 'nowrap',
   })
 
   const teamCount = teamNames.length
   const playerCount = signups.length
+  const assignedCount = picks.length
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div>
-          <h2 className="view-title">Draft Board</h2>
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.78rem', margin: '0.2rem 0 0' }}>
-            {playerCount} players &bull; {teamCount} teams of {tourney?.teamSize ?? 4}
-          </p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+      <div>
+        <h2 style={VIEW_TITLE}>Step 3 · Draft teams</h2>
+        <p style={{ margin: '0.25rem 0 0', fontSize: '1rem', color: 'var(--color-silver)' }}>
+          {playerCount} player{playerCount === 1 ? '' : 's'} · {teamCount} team{teamCount === 1 ? '' : 's'} of{' '}
+          {tourney?.teamSize ?? 4} · {assignedCount} drafted
+        </p>
       </div>
 
-      {/* Sticky control bar */}
       <div style={{
         position: 'sticky',
         top: 0,
         zIndex: 20,
         backgroundColor: 'var(--color-bg)',
         borderBottom: '1px solid var(--color-border)',
-        padding: '0.5rem 0',
+        padding: '0.75rem 0',
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
+        gap: '0.875rem',
         flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           {(['random', 'snake', 'manual'] as DraftMode[]).map(m => (
             <button key={m} style={modeBtn(m)} onClick={() => setMode(m)}>
-              {m}
+              {MODE_LABELS[m]}
             </button>
           ))}
         </div>
+
         {mode === 'random' && (
           <>
-            <PickWheel
-              players={unassigned}
-              onSpinComplete={handleSpinComplete}
-              onSpinStart={() => setSpinning(true)}
-            />
-            <button className="btn-gold" onClick={handleAssignAll} disabled={playerCount === 0 || spinning}>
-              Assign All
+            <PickWheel players={unassigned} onSpinComplete={handleSpinComplete} onSpinStart={() => setSpinning(true)} />
+            <button
+              onClick={handleAssignAll}
+              disabled={playerCount === 0 || spinning}
+              style={disabledIf(playerCount === 0 || spinning, GHOST_BUTTON)}
+            >
+              Assign all
             </button>
           </>
         )}
+
         {mode === 'snake' && (
-          <>
-            {currentSnakeTeam ? (
-              <>
-                <span style={{
-                  color: 'var(--color-gold)',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  background: 'rgba(200,169,110,0.1)',
-                  border: '1px solid var(--color-gold)',
-                  borderRadius: '0.3rem',
-                  padding: '0.25rem 0.75rem',
-                }}>
-                  {currentSnakeTeam}'s Pick
-                </span>
-                <PickWheel
-                  players={unassigned}
-                  onSpinStart={() => setSpinning(true)}
-                  onSpinComplete={handleSnakeSpinComplete}
-                />
-                <button
-                  className="btn-gold"
-                  onClick={advanceSnakePick}
-                  disabled={!pendingSnakePick}
-                >
-                  {pendingSnakePick ? `Confirm: ${pendingSnakePick}` : 'Confirm'}
-                </button>
-              </>
-            ) : (
-              <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                All players assigned
+          currentSnakeTeam ? (
+            <>
+              <span style={{
+                color: 'var(--color-gold)',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                background: 'rgba(200,169,110,0.1)',
+                border: '1px solid var(--color-gold)',
+                borderRadius: '0.45rem',
+                padding: '0.5rem 0.875rem',
+                whiteSpace: 'nowrap',
+              }}>
+                {currentSnakeTeam} is picking
               </span>
-            )}
-            <button className="btn-ghost" onClick={handleSnakeAssign} disabled={playerCount === 0 || spinning}>
-              Assign All
-            </button>
-            <p style={{ color: 'var(--color-muted)', fontSize: '0.72rem', margin: 0 }}>
-              Snake: {teamNames.join(' > ')} {'>'} {[...teamNames].reverse().join(' > ')} {'>'} ...
-            </p>
-          </>
+              <PickWheel players={unassigned} onSpinStart={() => setSpinning(true)} onSpinComplete={handleSnakeSpinComplete} />
+              <button
+                onClick={advanceSnakePick}
+                disabled={!pendingSnakePick}
+                style={disabledIf(!pendingSnakePick, PRIMARY_BUTTON)}
+              >
+                {pendingSnakePick ? `Confirm ${pendingSnakePick}` : 'Confirm pick'}
+              </button>
+              <button
+                onClick={handleSnakeAssign}
+                disabled={playerCount === 0 || spinning}
+                style={disabledIf(playerCount === 0 || spinning, GHOST_BUTTON)}
+              >
+                Assign all
+              </button>
+            </>
+          ) : (
+            <span style={{ fontSize: '0.95rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+              ✓ Every player has a team
+            </span>
+          )
         )}
-        {mode === 'manual' && (
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', margin: 0 }}>
-            Drag players from the pool into teams
-          </p>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginLeft: 'auto' }}>
           <Timer
             durationSeconds={timerDuration}
             remainingSeconds={remainingSeconds}
@@ -306,26 +306,30 @@ export function Draft(): JSX.Element {
             onReset={() => { setRemainingSeconds(timerDuration); setTimerRunning(false) }}
             onTick={setRemainingSeconds}
             onExpire={() => {
-              if (mode === 'snake' && currentSnakeTeam) {
-                advanceSnakePick()
-              } else {
-                setTimerRunning(false)
-              }
+              if (mode === 'snake' && currentSnakeTeam) advanceSnakePick()
+              else setTimerRunning(false)
             }}
           />
-          <button className="btn-gold" onClick={handleSave}>Save Draft</button>
-          <button className="btn-ghost" onClick={handleReset}>Reset Draft</button>
-          {status && <span className="status-ok">{status}</span>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <button onClick={handleSave} style={PRIMARY_BUTTON} data-testid="save-draft">Save draft</button>
+            <button onClick={handleReset} style={{ ...GHOST_BUTTON, color: 'var(--color-muted)' }}>Reset draft</button>
+          </div>
+          {status && <span className="status-ok" style={{ fontSize: '0.95rem' }}>{status}</span>}
         </div>
       </div>
 
-      {/* Main two-panel layout */}
-      <DndContext
-        onDragEnd={handleDragEnd}
-        onDragStart={e => setDragActive(e.active.id as string)}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1rem', alignItems: 'start' }}>
-          {/* LEFT: Player Pool */}
+      <p style={{ margin: 0, fontSize: '0.97rem', color: 'var(--color-silver)', textWrap: 'pretty' }}>
+        {MODE_HINTS[mode]}
+      </p>
+
+      {mode === 'snake' && teamCount > 0 && (
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-muted)' }}>
+          Pick order: {teamNames.join(' → ')} → {[...teamNames].reverse().join(' → ')} → …
+        </p>
+      )}
+
+      <DndContext onDragEnd={handleDragEnd} onDragStart={e => setDragActive(e.active.id as string)}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(18rem, 22rem) 1fr', gap: '1.125rem', alignItems: 'start' }}>
           <PlayerPool
             players={signups}
             picks={picks}
@@ -335,22 +339,16 @@ export function Draft(): JSX.Element {
             onSelectPlayer={mode === 'snake' ? handleSelectSnakePlayer : undefined}
           />
 
-          {/* RIGHT: Teams */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {mode === 'snake' && (
-              <p style={{ color: 'var(--color-muted)', fontSize: '0.72rem', margin: 0 }}>
-                Snake order: {teamNames.join(' > ')} &gt; {[...teamNames].reverse().join(' > ')} &gt; ...
-              </p>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
             <TeamRoster
               teams={teams}
               allPlayers={playerNames}
+              teamSize={tourney?.teamSize ?? 4}
               highlightedTeam={mode === 'snake' ? currentSnakeTeam ?? undefined : undefined}
               onRenameTeam={handleRenameTeam}
               onRemovePlayer={handleRemovePlayer}
               onAddPlayer={handleAddPlayer}
             />
-            {/* Empty team placeholders for unassigned teams */}
             {teamNames.filter(n => !teams.find(t => t.name === n)).map(name => (
               <TeamDropZone
                 key={name}
@@ -362,7 +360,6 @@ export function Draft(): JSX.Element {
           </div>
         </div>
 
-        {/* Drag overlay */}
         <DragOverlay>
           {dragActive && (() => {
             const p = signups.find(s => s.name === dragActive)
@@ -375,8 +372,6 @@ export function Draft(): JSX.Element {
     </div>
   )
 }
-
-/* ---- Player Pool panel ---- */
 
 interface PlayerPoolProps {
   players: Player[]
@@ -391,6 +386,7 @@ function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onS
   const [searchQuery, setSearchQuery] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })
   const displayed = filterPlayersByName(players, searchQuery)
+  const remaining = unassignedPlayers(players.map(p => p.name), picks).length
 
   return (
     <div
@@ -398,27 +394,27 @@ function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onS
       style={{
         backgroundColor: 'var(--color-surface)',
         border: `1px solid ${isOver ? 'var(--color-gold)' : 'var(--color-border)'}`,
-        borderRadius: '0.5rem',
-        padding: '0.75rem',
-        minHeight: '300px',
-        maxHeight: 'calc(100vh - 320px)',
+        borderRadius: '0.8rem',
+        padding: '1rem',
+        minHeight: '19rem',
+        maxHeight: 'calc(100vh - 22rem)',
         overflowY: 'auto',
         transition: 'border-color 150ms',
       }}
     >
       <p style={{
+        margin: '0 0 0.7rem',
         color: 'var(--color-muted)',
-        fontSize: '0.72rem',
-        fontWeight: 600,
-        letterSpacing: '0.1em',
+        fontSize: '0.85rem',
+        fontWeight: 700,
+        letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        margin: '0 0 0.6rem',
       }}>
-        Player Pool ({searchQuery ? `${displayed.length} / ${players.length}` : players.length})
+        Player pool · {remaining} left
       </p>
       <input
         type="search"
-        placeholder="Search players..."
+        placeholder="Search players…"
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
         style={{
@@ -426,18 +422,18 @@ function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onS
           boxSizing: 'border-box',
           background: 'var(--color-card)',
           border: '1px solid var(--color-border)',
-          borderRadius: '0.3rem',
+          borderRadius: '0.5rem',
           color: 'var(--color-text)',
-          fontSize: '0.8rem',
-          padding: '0.3rem 0.5rem',
-          marginBottom: '0.5rem',
+          fontSize: '0.95rem',
+          padding: '0.55rem 0.7rem',
+          marginBottom: '0.7rem',
           outline: 'none',
         }}
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {players.length === 0 && (
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>
-            No players. Fetch signups in Control tab.
+          <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+            No players yet. Go back to <strong>Step 2 · Signups</strong> and fetch your form responses.
           </p>
         )}
         {displayed.map(player => {
@@ -479,23 +475,15 @@ function DraggablePlayer({
   isDragging: boolean
 }): JSX.Element {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: player.name })
-  const transformStyle: React.CSSProperties = transform
+  const transformStyle: CSSProperties = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.4 : 1 }
     : {}
   return (
     <div ref={setNodeRef} {...listeners} {...attributes}>
-      <PlayerCard
-        player={player}
-        assigned={!!pick}
-        teamName={pick?.teamName}
-        draggable
-        style={transformStyle}
-      />
+      <PlayerCard player={player} assigned={!!pick} teamName={pick?.teamName} draggable style={transformStyle} />
     </div>
   )
 }
-
-/* ---- Empty team drop zone ---- */
 
 function TeamDropZone({ teamName, mode, highlighted }: { teamName: string; mode: DraftMode; highlighted?: boolean }): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: teamName })
@@ -505,19 +493,19 @@ function TeamDropZone({ teamName, mode, highlighted }: { teamName: string; mode:
       style={{
         backgroundColor: 'var(--color-card)',
         border: `1px ${highlighted ? 'solid' : 'dashed'} ${isOver || highlighted ? 'var(--color-gold)' : 'var(--color-border)'}`,
-        boxShadow: highlighted ? '0 0 8px rgba(200, 169, 110, 0.35)' : 'none',
-        borderRadius: '0.5rem',
-        padding: '0.75rem',
-        minHeight: '80px',
+        boxShadow: highlighted ? '0 0 10px rgba(200, 169, 110, 0.35)' : 'none',
+        borderRadius: '0.8rem',
+        padding: '1rem',
+        minHeight: '5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         transition: 'border-color 150ms',
       }}
     >
-      <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', margin: 0 }}>
+      <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '0.95rem' }}>
         <strong style={{ color: 'var(--color-gold)' }}>{teamName}</strong>
-        {mode === 'manual' ? ' -- drop players here' : ' -- no players yet'}
+        {mode === 'manual' ? ' — drop players here' : ' — no players yet'}
       </p>
     </div>
   )

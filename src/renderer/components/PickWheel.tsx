@@ -6,6 +6,10 @@ interface PickWheelProps {
   onSpinStart?: () => void
 }
 
+/**
+ * Restyled as a compact inline strip so it sits comfortably in the draft
+ * control bar. Spin logic is unchanged.
+ */
 export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelProps): JSX.Element {
   const [spinning, setSpinning] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
@@ -37,31 +41,56 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
   const displayColor = spinning
     ? 'var(--color-gold)'
     : picked
-      ? 'var(--color-text)'
+      ? 'var(--color-bright, var(--color-primary))'
       : 'var(--color-muted)'
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
-      <div style={{
-        fontSize: '1.75rem',
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.875rem',
+      background: 'var(--color-card)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '0.7rem',
+      padding: '0.5rem 0.75rem 0.5rem 1rem',
+    }}>
+      <span style={{
+        fontSize: '1.25rem',
         fontWeight: 700,
-        minHeight: '2.5rem',
-        letterSpacing: '0.05em',
+        letterSpacing: '0.04em',
         color: displayColor,
         transition: 'color 75ms ease',
-        textAlign: 'center',
+        minWidth: '9rem',
       }}>
-        {picked ?? (empty ? 'No players left' : '--')}
-      </div>
+        {picked ?? (empty ? 'All drafted!' : '— spin —')}
+      </span>
 
-      <button onClick={spin} disabled={spinning || empty} className="btn-gold" style={{ padding: '0.5rem 2rem', letterSpacing: '0.15em' }}>
-        {spinning ? 'Spinning...' : 'Spin'}
+      <button
+        onClick={spin}
+        disabled={spinning || empty}
+        data-testid="spin-wheel"
+        style={{
+          padding: '0.6rem 1.5rem',
+          borderRadius: '0.55rem',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          cursor: spinning || empty ? 'default' : 'pointer',
+          color: 'var(--color-bg)',
+          background: 'linear-gradient(160deg, var(--color-bright, var(--color-primary)) 0%, var(--color-primary) 45%, var(--color-deep, var(--color-primary)) 100%)',
+          border: '1px solid var(--color-deep, var(--color-primary))',
+          boxShadow: '0 0 14px rgba(var(--glow-rgb), 0.4)',
+          opacity: spinning || empty ? 0.4 : 1,
+        }}
+      >
+        {spinning ? 'Spinning…' : 'Spin'}
       </button>
 
       {!empty && (
-        <p style={{ color: 'var(--color-muted)', fontSize: '0.75rem' }}>
-          {players.length} player{players.length !== 1 ? 's' : ''} remaining
-        </p>
+        <span style={{ fontSize: '0.875rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+          {players.length} left
+        </span>
       )}
     </div>
   )
