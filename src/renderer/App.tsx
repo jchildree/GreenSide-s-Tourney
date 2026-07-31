@@ -1,51 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Sidebar, type View } from './components/Sidebar'
+import { Home } from './views/Home'
 import { Setup } from './views/Setup'
+import { Signups } from './views/Signups'
 import { Draft } from './views/Draft'
 import { Bracket } from './views/Bracket'
-import { Control } from './views/Control'
-import { Settings } from './views/Settings'
 import { Matches } from './views/Matches'
+import { Settings } from './views/Settings'
 import { Onboarding } from './views/Onboarding'
+import { useTournamentProgress } from './hooks/useTournamentProgress'
 import { applyTheme } from './theme'
-import type { ThemeId } from '../shared/types'
-
-type View = 'setup' | 'draft' | 'bracket' | 'control' | 'settings' | 'matches'
-
-const NAV: { id: View; label: string }[] = [
-  { id: 'setup',   label: 'Setup'   },
-  { id: 'draft',   label: 'Draft'   },
-  { id: 'bracket', label: 'Bracket' },
-  { id: 'control', label: 'Control' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'matches', label: 'Brackets' },
-]
+import { CRED, type ThemeId } from '../shared/types'
 
 export function App(): JSX.Element {
-  const [view, setView] = useState<View>('setup')
+  const [view, setView] = useState<View>('home')
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<ThemeId>('green')
   const [bgUrl, setBgUrl] = useState<string | null>(null)
+  const [bgOpacity, setBgOpacity] = useState(35)
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
+  const [challongeConnected, setChallongeConnected] = useState<boolean | null>(null)
+
+  const progress = useTournamentProgress()
 
   useEffect(() => {
-    window.api.checkOnboarding().then(status => setOnboarded(status.complete))
+    void window.api.checkOnboarding().then(status => setOnboarded(status.complete))
   }, [])
 
   useEffect(() => {
-    window.api.getAppearance().then(a => {
+    void window.api.getAppearance().then(a => {
       setTheme(a.theme)
       applyTheme(a.theme)
       setBgUrl(a.backgroundDataUrl)
+      if (typeof a.backgroundOpacity === 'number') setBgOpacity(a.backgroundOpacity)
     })
   }, [])
 
-  function handleThemeChange(t: ThemeId): void {
-    setTheme(t)
-    applyTheme(t)
-  }
-
-  function handleBackgroundChange(url: string | null): void {
-    setBgUrl(url)
-  }
+  useEffect(() => {
+    void Promise.all([
+      window.api.getCredential(CRED.google),
+      window.api.getCredential(CRED.challongeRefresh),
+    ]).then(([g, c]) => {
+      setGoogleConnected(g !== null)
+      setChallongeConnected(c !== null)
+    })
+  }, [view])
 
   if (onboarded === null) {
     return (
@@ -56,13 +55,18 @@ export function App(): JSX.Element {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <span style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Loading…</span>
+        <span style={{ color: 'var(--color-muted)', fontSize: '1rem' }}>Loading…</span>
       </div>
     )
   }
 
   if (!onboarded) {
-    return <Onboarding onComplete={() => setOnboarded(true)} />
+    return <Onboarding onComplete={() => { setOnboarded(true); setView('home') }} />
+  }
+
+  function navigate(next: View): void {
+    setView(next)
+    void progress.reload()
   }
 
   return (
@@ -71,126 +75,59 @@ export function App(): JSX.Element {
       backgroundColor: 'var(--color-bg)',
       color: 'var(--color-text)',
       display: 'flex',
-      flexDirection: 'column',
     }}>
       {bgUrl && (
         <div
           aria-hidden
+          data-testid="background-layer"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 0,
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url(${bgUrl})`,
+            pointerEvents: 'none',
+            backgroundImage: `url(${bgUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: bgOpacity / 100,
           }}
         />
       )}
-      <header style={{
-        backgroundColor: 'var(--color-surface)',
-        borderBottom: '1px solid var(--color-border)',
-        boxShadow: '0 1px 0 rgba(var(--glow-rgb), 0.08)',
-        padding: '0.75rem 1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2rem',
-        flexShrink: 0,
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        <div style={{ flexShrink: 0 }}>
-          <h1 style={{
-            color: 'var(--color-primary)',
-            fontWeight: 700,
-            fontSize: '1.25rem',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            lineHeight: 1,
-            margin: 0,
-          }}>
-            The Colosseum
-          </h1>
-          <p style={{
-            color: 'var(--color-muted)',
-            fontSize: '0.7rem',
-            letterSpacing: '0.1em',
-            margin: '0.2rem 0 0',
-          }}>
-            Tournament Dashboard
-          </p>
-        </div>
 
-        <nav style={{ display: 'flex', flexDirection: 'row', gap: '0.25rem' }}>
-          {NAV.map(({ id, label }) => {
-            const active = view === id
-            return (
-              <button
-                key={id}
-                onClick={() => setView(id)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  background: active ? 'var(--nav-active)' : 'transparent',
-                  color: active ? 'var(--color-primary)' : 'var(--color-muted)',
-                  border: '1px solid',
-                  borderColor: active ? 'var(--color-border)' : 'transparent',
-                  borderRadius: '0.6rem',
-                  cursor: 'pointer',
-                  transition: 'color 150ms ease, background 150ms ease, border-color 150ms ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => {
-                  if (!active) {
-                    const el = e.currentTarget
-                    el.style.color = 'var(--color-silver)'
-                    el.style.borderColor = 'var(--color-border)'
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) {
-                    const el = e.currentTarget
-                    el.style.color = 'var(--color-muted)'
-                    el.style.borderColor = 'transparent'
-                  }
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </nav>
-      </header>
+      <Sidebar
+        view={view}
+        steps={progress.steps}
+        onNavigate={navigate}
+        googleConnected={googleConnected}
+        challongeConnected={challongeConnected}
+      />
 
       <main style={{
         flex: 1,
-        padding: '2rem 1.5rem',
+        padding: '2.25rem 2.75rem',
         overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
         position: 'relative',
         zIndex: 1,
+        boxSizing: 'border-box',
       }}>
-        <div style={{ width: '100%', maxWidth: '1600px' }}>
-          {view === 'setup'   && <Setup />}
-          {view === 'draft'   && <Draft />}
-          {view === 'bracket' && <Bracket />}
-          {view === 'control' && <Control />}
+        <div style={{ width: '100%', maxWidth: '75rem', margin: '0 auto' }}>
+          {view === 'home' && <Home progress={progress} onNavigate={navigate} />}
+          {view === 'setup' && <Setup onSaved={() => { void progress.reload(); setView('signups') }} />}
+          {view === 'signups' && <Signups onChanged={() => void progress.reload()} />}
+          {view === 'draft' && <Draft onChanged={() => void progress.reload()} />}
+          {view === 'publish' && <Bracket onChanged={() => void progress.reload()} />}
+          {view === 'live' && <Matches />}
           {view === 'settings' && (
             <Settings
-              onCleared={() => setView('setup')}
+              onCleared={() => { void progress.reload(); setView('home') }}
               theme={theme}
-              onThemeChange={handleThemeChange}
-              backgroundSet={bgUrl !== null}
-              onBackgroundChange={handleBackgroundChange}
+              onThemeChange={t => { setTheme(t); applyTheme(t) }}
+              backgroundUrl={bgUrl}
+              backgroundOpacity={bgOpacity}
+              onBackgroundChange={setBgUrl}
+              onBackgroundOpacityChange={setBgOpacity}
             />
           )}
-          {view === 'matches' && <Matches />}
         </div>
       </main>
     </div>

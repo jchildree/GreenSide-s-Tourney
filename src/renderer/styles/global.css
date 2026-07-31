@@ -38,6 +38,15 @@
   --btn-on-primary: #021a0a;
 }
 
+:root {
+  --color-bright: #86efac;
+  --color-deep:   #15803d;
+}
+[data-theme='blue']    { --color-bright: #93c5fd; --color-deep: #1d4ed8; }
+[data-theme='crimson'] { --color-bright: #fca5a5; --color-deep: #b91c1c; }
+[data-theme='purple']  { --color-bright: #d8b4fe; --color-deep: #7e22ce; }
+[data-theme='amber']   { --color-bright: #fcd34d; --color-deep: #b45309; }
+
 [data-theme='blue'] {
   --color-bg:      #050a14;
   --color-surface: #0a1426;
@@ -261,7 +270,7 @@
   /* ── Form label ─────────────────────────────────────── */
   .form-label {
     color: var(--color-muted);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -271,3 +280,17 @@
   .status-ok  { color: var(--color-success); font-size: 0.875rem; font-weight: 500; }
   .status-err { color: var(--color-danger);  font-size: 0.875rem; font-weight: 500; }
 }
+
+body { font-size: 16px; }
+
+.form-input {
+  font-size: 1rem;
+  min-height: 2.6rem;
+}
+.form-input:focus-visible,
+button:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--glow-rgb), 0.35);
+}
+.form-label { font-size: 0.9rem; }
