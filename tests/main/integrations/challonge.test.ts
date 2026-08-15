@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { pushToChallonge, startTournament, fetchMatches, updateMatch } from '../../../src/main/integrations/challonge'
+import { pushToChallonge, startTournament, fetchMatches, updateMatch, buildTournamentAttrs } from '../../../src/main/integrations/challonge'
 
 vi.mock('../../../src/main/integrations/token-refresh', () => ({
   refreshAccessToken: vi.fn().mockResolvedValue('mock-access-token'),
@@ -17,6 +17,9 @@ const baseParams = {
     dateTime: '',
     signupDeadline: '',
     draftStyle: 'snake' as const,
+    eliminationType: 'single' as const,
+    maps: [],
+    rules: '',
     minPlayers: 2,
     maxPlayers: 32,
     teamNames: [],
@@ -379,5 +382,33 @@ describe('updateMatch', () => {
     await expect(
       updateMatch({ refreshToken: 'fake', tournamentId: 'tid', matchId: 'mid', scoresCsv: '3-1', winnerId: 'p1' })
     ).rejects.toThrow('Failed to update match (422)')
+  })
+})
+
+describe('buildTournamentAttrs', () => {
+  it('uses single elimination by default', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, eliminationType: 'single' })
+    expect(attrs.tournament_type).toBe('single elimination')
+  })
+
+  it('uses double elimination when eliminationType is double', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, eliminationType: 'double' })
+    expect(attrs.tournament_type).toBe('double elimination')
+  })
+
+  it('includes maps and rules in the description', () => {
+    const attrs = buildTournamentAttrs({
+      ...baseParams.tourney,
+      maps: ['Dust II', 'Inferno'],
+      rules: 'Best of 3.',
+    })
+    expect(attrs.description).toContain('Dust II')
+    expect(attrs.description).toContain('Inferno')
+    expect(attrs.description).toContain('Best of 3.')
+  })
+
+  it('omits description when no maps or rules', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: [], rules: '' })
+    expect(attrs.description).toBeUndefined()
   })
 })

@@ -99,6 +99,23 @@ async function syncParticipants(
   }
 }
 
+export function buildTournamentAttrs(tourney: Tourney): Record<string, unknown> {
+  const attrs: Record<string, unknown> = {
+    name: tourney.name || 'Tournament',
+    tournament_type: tourney.eliminationType === 'double' ? 'double elimination' : 'single elimination',
+  }
+  if (tourney.game) attrs.game_name = tourney.game
+  if (tourney.dateTime) attrs.starts_at = tourney.dateTime
+  if (tourney.streamLink) attrs.stream_link = tourney.streamLink
+
+  const maps = tourney.maps ?? []
+  const rules = tourney.rules ?? ''
+  if (maps.length || rules) {
+    attrs.description = `Maps: ${maps.join(', ')}\n\nRules:\n${rules}`
+  }
+  return attrs
+}
+
 export async function pushToChallonge(params: PushParams): Promise<{ tournamentId: string }> {
   const { refreshToken, tournamentId: existingId, draft, tourney } = params
   if (!CHALLONGE_CLIENT_ID || !CHALLONGE_CLIENT_SECRET) {
@@ -114,13 +131,7 @@ export async function pushToChallonge(params: PushParams): Promise<{ tournamentI
   })
   const hdrs = authHeaders(accessToken)
 
-  const attrs: Record<string, unknown> = {
-    name: tourney.name || 'Tournament',
-    tournament_type: 'single elimination',
-  }
-  if (tourney.game) attrs.game_name = tourney.game
-  if (tourney.dateTime) attrs.starts_at = tourney.dateTime
-  if (tourney.streamLink) attrs.stream_link = tourney.streamLink
+  const attrs = buildTournamentAttrs(tourney)
 
   let tournamentId: string
 

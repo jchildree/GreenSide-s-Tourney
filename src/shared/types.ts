@@ -13,6 +13,9 @@ export interface Tourney {
   dateTime: string        // ISO 8601
   signupDeadline: string  // ISO 8601
   draftStyle: DraftStyle
+  eliminationType: 'single' | 'double'
+  maps: string[]
+  rules: string
   minPlayers: number
   maxPlayers: number
   teamNames: string[]     // team slot names for draft
@@ -59,6 +62,9 @@ export const DEFAULT_TOURNEY: Tourney = {
   dateTime: '',
   signupDeadline: '',
   draftStyle: 'random',
+  eliminationType: 'single',
+  maps: [],
+  rules: '',
   minPlayers: 2,
   maxPlayers: 32,
   teamNames: [],

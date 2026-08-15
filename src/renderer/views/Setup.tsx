@@ -28,6 +28,22 @@ const LABEL: CSSProperties = {
   color: 'var(--color-silver)',
 }
 
+const GHOST_BUTTON: CSSProperties = {
+  padding: '0.5rem 0.9rem',
+  borderRadius: '0.55rem',
+  fontSize: '0.9rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
+const ELIMINATION_TYPES: { id: Tourney['eliminationType']; label: string }[] = [
+  { id: 'single', label: 'Single elimination' },
+  { id: 'double', label: 'Double elimination' },
+]
+
 const DRAFT_STYLES: { id: Tourney['draftStyle']; label: string; desc: string }[] = [
   { id: 'random', label: 'Random wheel', desc: 'Spin a wheel — every pick is a surprise' },
   { id: 'snake',  label: 'Snake draft',  desc: 'Teams take turns, order reverses each round' },
@@ -219,6 +235,97 @@ export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
             ))}
             {field('Min players', 'minPlayers', d => textInput('minPlayers', 'number', d))}
             {field('Max players', 'maxPlayers', d => textInput('maxPlayers', 'number', d))}
+          </div>
+        </div>
+
+        <div style={CARD}>
+          <p style={EYEBROW}>Format &amp; rules</p>
+          <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.9rem', color: 'var(--color-muted)' }}>
+            Pushed to your Challonge bracket.
+          </p>
+
+          <span style={{ ...LABEL, display: 'block', marginBottom: '0.625rem' }}>Bracket format</span>
+          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', marginBottom: '1.125rem' }}>
+            {ELIMINATION_TYPES.map(el => {
+              const active = tourney.eliminationType === el.id
+              return (
+                <button
+                  key={el.id}
+                  type="button"
+                  onClick={() => { setTourney(t => ({ ...t, eliminationType: el.id })); setSaved(false) }}
+                  style={{
+                    flex: 1,
+                    minWidth: '11rem',
+                    textAlign: 'left',
+                    padding: '0.875rem 1rem',
+                    borderRadius: '0.7rem',
+                    cursor: 'pointer',
+                    background: 'var(--color-surface)',
+                    border: '2px solid',
+                    borderColor: active ? 'var(--color-primary)' : 'var(--color-border)',
+                    color: 'var(--color-text)',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {el.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <span style={{ ...LABEL, display: 'block', marginBottom: '0.625rem' }}>Maps</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            {(tourney.maps ?? []).map((m, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={m}
+                  onChange={e => {
+                    const value = e.target.value
+                    setTourney(t => {
+                      const maps = [...(t.maps ?? [])]
+                      maps[i] = value
+                      return { ...t, maps }
+                    })
+                    setSaved(false)
+                  }}
+                  className="form-input"
+                  placeholder="Map name"
+                  style={{ flex: 1, minHeight: '2.6rem', fontSize: '1rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTourney(t => ({ ...t, maps: (t.maps ?? []).filter((_, j) => j !== i) }))
+                    setSaved(false)
+                  }}
+                  style={GHOST_BUTTON}
+                  aria-label={`Remove map ${i + 1}`}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setTourney(t => ({ ...t, maps: [...(t.maps ?? []), ''] })); setSaved(false) }}
+            style={{ ...GHOST_BUTTON, marginBottom: '1.125rem' }}
+          >
+            Add map
+          </button>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <span style={LABEL}>Rules</span>
+            <textarea
+              value={tourney.rules ?? ''}
+              onChange={e => { setTourney(t => ({ ...t, rules: e.target.value })); setSaved(false) }}
+              className="form-input"
+              rows={5}
+              placeholder="Match rules, scoring, tie-breakers..."
+              style={{ width: '100%', fontSize: '1rem', resize: 'vertical' }}
+            />
           </div>
         </div>
 
