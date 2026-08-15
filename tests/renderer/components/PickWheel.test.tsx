@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, createEvent } from '@testing-library/react'
 import { PickWheel } from '../../../src/renderer/components/PickWheel'
 
 const PLAYERS = ['Alice', 'Bob', 'Carol', 'Dave']
@@ -8,9 +8,24 @@ function labelOrder(): string[] {
   return screen.getAllByTestId('wheel-label').map((el) => el.textContent ?? '')
 }
 
+// jsdom builds transitionend as a plain Event, dropping the propertyName init,
+// so set it explicitly for the component's transform-only completion guard.
+function fireTransformEnd(el: Element): void {
+  const ev = createEvent.transitionEnd(el)
+  Object.defineProperty(ev, 'propertyName', { value: 'transform' })
+  fireEvent(el, ev)
+}
+
 describe('PickWheel', () => {
   it('renders one wedge path per player', () => {
     render(<PickWheel players={PLAYERS} onSpinComplete={() => {}} />)
+    expect(screen.getAllByTestId('wheel-wedge')).toHaveLength(4)
+  })
+
+  it('renders distinct wedges for duplicate player names', () => {
+    render(
+      <PickWheel players={['Luffy', 'Luffy', 'Zoro', 'Nami']} onSpinComplete={() => {}} />
+    )
     expect(screen.getAllByTestId('wheel-wedge')).toHaveLength(4)
   })
 
@@ -34,7 +49,7 @@ describe('PickWheel', () => {
     fireEvent.click(screen.getByTestId('spin-wheel'))
     expect(onSpinStart).toHaveBeenCalledOnce()
 
-    fireEvent.transitionEnd(screen.getByTestId('wheel-rotor'))
+    fireTransformEnd(screen.getByTestId('wheel-rotor'))
     expect(onSpinComplete).toHaveBeenCalledOnce()
     expect(PLAYERS).toContain(onSpinComplete.mock.calls[0][0])
   })
@@ -44,8 +59,8 @@ describe('PickWheel', () => {
     render(<PickWheel players={PLAYERS} onSpinComplete={onSpinComplete} />)
 
     fireEvent.click(screen.getByTestId('spin-wheel'))
-    fireEvent.transitionEnd(screen.getByTestId('wheel-rotor'))
-    fireEvent.transitionEnd(screen.getByTestId('wheel-rotor'))
+    fireTransformEnd(screen.getByTestId('wheel-rotor'))
+    fireTransformEnd(screen.getByTestId('wheel-rotor'))
     expect(onSpinComplete).toHaveBeenCalledOnce()
   })
 

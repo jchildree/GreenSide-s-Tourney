@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type TransitionEvent } from 'react'
 
 interface PickWheelProps {
   players: string[]
@@ -100,8 +100,8 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
     setRotation(target)
   }
 
-  function handleTransitionEnd(): void {
-    if (!spinningRef.current) return
+  function handleTransitionEnd(e: TransitionEvent<SVGGElement>): void {
+    if (e.propertyName !== 'transform' || !spinningRef.current) return
     spinningRef.current = false
     setSpinning(false)
     const winner = winnerRef.current
@@ -136,7 +136,7 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
               >
                 {order.map((name, i) => (
                   <path
-                    key={`${name}-${i}`}
+                    key={`${i}-${name}`}
                     data-testid="wheel-wedge"
                     d={wedgePath(i, count, RADIUS)}
                     fill={wedgeFill(i, count)}
@@ -149,7 +149,7 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
                   const label = polar(angle, RADIUS * 0.62)
                   return (
                     <text
-                      key={`label-${name}-${i}`}
+                      key={`label-${i}-${name}`}
                       data-testid="wheel-label"
                       x={label.x}
                       y={label.y}
