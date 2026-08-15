@@ -91,13 +91,33 @@ interface SetupProps {
   onSaved?: () => void
 }
 
+interface MapRow {
+  id: number
+  value: string
+}
+
+let nextMapId = 0
+function toMapRows(maps: string[]): MapRow[] {
+  return maps.map(value => ({ id: nextMapId++, value }))
+}
+
 export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
   const [tourney, setTourney] = useState<Tourney>(DEFAULT_TOURNEY)
+  const [mapRows, setMapRows] = useState<MapRow[]>(() => toMapRows(DEFAULT_TOURNEY.maps ?? []))
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    void window.api.getTourney().then(data => setTourney(t => ({ ...t, ...data })))
+    void window.api.getTourney().then(data => {
+      setTourney(t => ({ ...t, ...data }))
+      setMapRows(toMapRows(data.maps ?? []))
+    })
   }, [])
+
+  function updateMaps(rows: MapRow[]): void {
+    setMapRows(rows)
+    setTourney(t => ({ ...t, maps: rows.map(r => r.value) }))
+    setSaved(false)
+  }
 
   function isEnabled(key: FieldKey): boolean {
     return tourney.enabledFields?.[key] !== false
@@ -276,19 +296,14 @@ export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
 
           <span style={{ ...LABEL, display: 'block', marginBottom: '0.625rem' }}>Maps</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            {(tourney.maps ?? []).map((m, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
+            {mapRows.map((row, i) => (
+              <div key={row.id} style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
-                  value={m}
+                  value={row.value}
                   onChange={e => {
                     const value = e.target.value
-                    setTourney(t => {
-                      const maps = [...(t.maps ?? [])]
-                      maps[i] = value
-                      return { ...t, maps }
-                    })
-                    setSaved(false)
+                    updateMaps(mapRows.map(r => (r.id === row.id ? { ...r, value } : r)))
                   }}
                   className="form-input"
                   placeholder="Map name"
@@ -296,10 +311,7 @@ export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    setTourney(t => ({ ...t, maps: (t.maps ?? []).filter((_, j) => j !== i) }))
-                    setSaved(false)
-                  }}
+                  onClick={() => updateMaps(mapRows.filter(r => r.id !== row.id))}
                   style={GHOST_BUTTON}
                   aria-label={`Remove map ${i + 1}`}
                 >
@@ -310,7 +322,7 @@ export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
           </div>
           <button
             type="button"
-            onClick={() => { setTourney(t => ({ ...t, maps: [...(t.maps ?? []), ''] })); setSaved(false) }}
+            onClick={() => updateMaps([...mapRows, { id: nextMapId++, value: '' }])}
             style={{ ...GHOST_BUTTON, marginBottom: '1.125rem' }}
           >
             Add map

@@ -110,9 +110,10 @@ export function buildTournamentAttrs(tourney: Tourney): Record<string, unknown> 
 
   const maps = tourney.maps ?? []
   const rules = tourney.rules ?? ''
-  if (maps.length || rules) {
-    attrs.description = `Maps: ${maps.join(', ')}\n\nRules:\n${rules}`
-  }
+  const parts: string[] = []
+  if (maps.length) parts.push(`Maps: ${maps.join(', ')}`)
+  if (rules.trim()) parts.push(`Rules:\n${rules}`)
+  if (parts.length) attrs.description = parts.join('\n\n')
   return attrs
 }
 

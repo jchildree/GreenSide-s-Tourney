@@ -411,4 +411,21 @@ describe('buildTournamentAttrs', () => {
     const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: [], rules: '' })
     expect(attrs.description).toBeUndefined()
   })
+
+  it('builds description with no Rules header when only maps are present', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: ['Dust II', 'Inferno'], rules: '' })
+    expect(attrs.description).toContain('Maps: Dust II, Inferno')
+    expect(attrs.description).not.toContain('Rules:')
+  })
+
+  it('builds description with no Maps header when only rules are present', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: [], rules: 'Best of 3.' })
+    expect(attrs.description).toContain('Rules:\nBest of 3.')
+    expect(attrs.description).not.toContain('Maps:')
+  })
+
+  it('omits description when maps are empty and rules are whitespace only', () => {
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: [], rules: '   ' })
+    expect(attrs.description).toBeUndefined()
+  })
 })
