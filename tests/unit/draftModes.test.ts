@@ -356,4 +356,11 @@ describe('seededDistribute', () => {
     const second = seededDistribute(players, 3)
     expect(first).toEqual(second)
   })
+
+  it('distributes duplicate player names by seed', () => {
+    const players = [seeded('Alex', 0), seeded('Alex', 1), seeded('Alex', 2), seeded('Alex', 3)]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['Alex', 'Alex'])
+    expect(teams[1].players).toEqual(['Alex', 'Alex'])
+  })
 })

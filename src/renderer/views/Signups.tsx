@@ -59,6 +59,15 @@ function formViewUrl(formId: string): string {
   return `https://docs.google.com/forms/d/${formId}/viewform`
 }
 
+/**
+ * Stable per-row id for drag-and-drop. Unique even when two signed-up players
+ * share a name -- submittedAt is effectively unique per signup, and we fold in
+ * discordHandle and name so the id is deterministic and human-traceable.
+ */
+function rowId(p: Player): string {
+  return `${p.submittedAt}|${p.discordHandle}|${p.name}`
+}
+
 interface SignupsProps {
   onChanged?: () => void
 }
@@ -90,8 +99,8 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
   function handleReorder(event: DragEndEvent): void {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    const oldIndex = signups.findIndex(p => p.name === active.id)
-    const newIndex = signups.findIndex(p => p.name === over.id)
+    const oldIndex = signups.findIndex(p => rowId(p) === active.id)
+    const newIndex = signups.findIndex(p => rowId(p) === over.id)
     if (oldIndex < 0 || newIndex < 0) return
     const reordered = arrayMove(signups, oldIndex, newIndex).map((p, i) => ({ ...p, seed: i }))
     persistSignups(reordered)
@@ -228,10 +237,10 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
                 Drag to rank players. Top of the list is the strongest seed.
               </p>
               <DndContext onDragEnd={handleReorder}>
-                <SortableContext items={signups.map(p => p.name)} strategy={verticalListSortingStrategy}>
+                <SortableContext items={signups.map(rowId)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '21rem', overflowY: 'auto' }}>
                     {signups.map((p, i) => (
-                      <SignupRow key={p.name} player={p} index={i} />
+                      <SignupRow key={rowId(p)} player={p} index={i} />
                     ))}
                   </div>
                 </SortableContext>
@@ -301,7 +310,7 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
 }
 
 function SignupRow({ player, index }: { player: Player; index: number }): JSX.Element {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: player.name })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rowId(player) })
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
