@@ -28,6 +28,13 @@ export function computeTeamCount(playerCount: number, teamSize: number): number 
   return Math.max(1, Math.floor(playerCount / teamSize))
 }
 
+export function roundCount(teamCount: number, eliminationType: 'single' | 'double'): number {
+  const t = Math.max(1, Math.floor(teamCount))
+  const winners = Math.max(1, Math.ceil(Math.log2(t)))
+  // ponytail: double-elim round count approximated as winners rounds doubled minus the grand final; refine if exact loser-bracket rounds ever matter
+  return eliminationType === 'double' ? winners * 2 - 1 : winners
+}
+
 /**
  * Generate default team names: ["Team 1", "Team 2", ...]
  */

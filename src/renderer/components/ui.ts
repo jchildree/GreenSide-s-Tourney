@@ -28,7 +28,8 @@ export const VIEW_TITLE: CSSProperties = {
 export const VIEW_INTRO: CSSProperties = {
   margin: '0 0 1.5rem',
   fontSize: '1rem',
-  color: 'var(--color-silver)',
+  fontWeight: 500,
+  color: 'var(--color-text)',
   textWrap: 'pretty',
 }
 

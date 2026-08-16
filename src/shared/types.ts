@@ -14,7 +14,7 @@ export interface Tourney {
   signupDeadline: string  // ISO 8601
   draftStyle: DraftStyle
   eliminationType: 'single' | 'double'
-  maps: string[]
+  maps: string[][]
   rules: string
   minPlayers: number
   maxPlayers: number

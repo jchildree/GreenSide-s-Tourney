@@ -396,14 +396,14 @@ describe('buildTournamentAttrs', () => {
     expect(attrs.tournament_type).toBe('double elimination')
   })
 
-  it('includes maps and rules in the description', () => {
+  it('includes per-round maps and rules in the description', () => {
     const attrs = buildTournamentAttrs({
       ...baseParams.tourney,
-      maps: ['Dust II', 'Inferno'],
+      maps: [['Dust II'], ['Inferno']],
       rules: 'Best of 3.',
     })
-    expect(attrs.description).toContain('Dust II')
-    expect(attrs.description).toContain('Inferno')
+    expect(attrs.description).toContain('Round 1: Dust II')
+    expect(attrs.description).toContain('Round 2: Inferno')
     expect(attrs.description).toContain('Best of 3.')
   })
 
@@ -413,8 +413,8 @@ describe('buildTournamentAttrs', () => {
   })
 
   it('builds description with no Rules header when only maps are present', () => {
-    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: ['Dust II', 'Inferno'], rules: '' })
-    expect(attrs.description).toContain('Maps: Dust II, Inferno')
+    const attrs = buildTournamentAttrs({ ...baseParams.tourney, maps: [['Dust II', 'Inferno']], rules: '' })
+    expect(attrs.description).toContain('Round 1: Dust II, Inferno')
     expect(attrs.description).not.toContain('Rules:')
   })
 

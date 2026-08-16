@@ -10,6 +10,7 @@ import {
   filterPlayersByName,
   buildSnakeQueue,
   seededDistribute,
+  roundCount,
 } from '../../src/renderer/utils/draftModes'
 
 function seeded(name: string, seed: number, submittedAt = ''): Player {
@@ -362,5 +363,19 @@ describe('seededDistribute', () => {
     const teams = seededDistribute(players, 2)
     expect(teams[0].players).toEqual(['Alex', 'Alex'])
     expect(teams[1].players).toEqual(['Alex', 'Alex'])
+  })
+})
+
+describe('roundCount', () => {
+  it('derives single-elimination rounds from team count', () => {
+    expect(roundCount(1, 'single')).toBe(1)
+    expect(roundCount(2, 'single')).toBe(1)
+    expect(roundCount(4, 'single')).toBe(2)
+    expect(roundCount(8, 'single')).toBe(3)
+  })
+
+  it('adds loser-bracket rounds for double elimination', () => {
+    expect(roundCount(4, 'double')).toBe(3)
+    expect(roundCount(8, 'double')).toBe(5)
   })
 })

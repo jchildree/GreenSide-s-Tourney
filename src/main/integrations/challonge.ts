@@ -111,7 +111,13 @@ export function buildTournamentAttrs(tourney: Tourney): Record<string, unknown> 
   const maps = tourney.maps ?? []
   const rules = tourney.rules ?? ''
   const parts: string[] = []
-  if (maps.length) parts.push(`Maps: ${maps.join(', ')}`)
+  const roundLines = maps
+    .map((round, i) => {
+      const clean = (round ?? []).filter(m => m.trim())
+      return clean.length ? `Round ${i + 1}: ${clean.join(', ')}` : ''
+    })
+    .filter(Boolean)
+  if (roundLines.length) parts.push(`Maps:\n${roundLines.join('\n')}`)
   if (rules.trim()) parts.push(`Rules:\n${rules}`)
   if (parts.length) attrs.description = parts.join('\n\n')
   return attrs

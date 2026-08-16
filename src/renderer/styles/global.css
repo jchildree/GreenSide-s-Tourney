@@ -120,6 +120,8 @@
     min-height: 100vh;
   }
 
+  #root { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+
   input, select, button, textarea { font-family: inherit; }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
