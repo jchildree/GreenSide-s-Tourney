@@ -28,6 +28,7 @@ export interface Player {
   name: string
   discordHandle: string
   submittedAt: string     // ISO 8601
+  seed?: number           // 0-based rank set by admin reorder; unset sorts last
 }
 
 export type Signups = Player[]

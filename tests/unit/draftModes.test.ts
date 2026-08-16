@@ -9,7 +9,12 @@ import {
   unassignedPlayers,
   filterPlayersByName,
   buildSnakeQueue,
+  seededDistribute,
 } from '../../src/renderer/utils/draftModes'
+
+function seeded(name: string, seed: number, submittedAt = ''): Player {
+  return { name, discordHandle: '', submittedAt, seed }
+}
 
 // ---------------------------------------------------------------------------
 // computeTeamCount
@@ -296,5 +301,59 @@ describe('buildSnakeQueue', () => {
 
   it('handles two teams across 4 picks', () => {
     expect(buildSnakeQueue(['A', 'B'], 4)).toEqual(['A', 'B', 'B', 'A'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// seededDistribute
+// ---------------------------------------------------------------------------
+describe('seededDistribute', () => {
+  it('returns empty array when players list is empty', () => {
+    expect(seededDistribute([], 2)).toEqual([])
+  })
+
+  it('returns empty array when teamCount is 0', () => {
+    expect(seededDistribute([seeded('A', 0)], 0)).toEqual([])
+  })
+
+  it('even split: 8 players / 2 teams via snake order', () => {
+    const players = Array.from({ length: 8 }, (_, i) => seeded(`P${i}`, i))
+    const teams = seededDistribute(players, 2)
+    expect(teams.map(t => t.name)).toEqual(['Team 1', 'Team 2'])
+    expect(teams[0].players).toEqual(['P0', 'P3', 'P4', 'P7'])
+    expect(teams[1].players).toEqual(['P1', 'P2', 'P5', 'P6'])
+  })
+
+  it('uneven split: 7 players / 2 teams leaves the extra on Team 1', () => {
+    const players = Array.from({ length: 7 }, (_, i) => seeded(`P${i}`, i))
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['P0', 'P3', 'P4'])
+    expect(teams[1].players).toEqual(['P1', 'P2', 'P5', 'P6'])
+  })
+
+  it('sorts ascending by seed regardless of input order', () => {
+    const players = [seeded('C', 2), seeded('A', 0), seeded('D', 3), seeded('B', 1)]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['A', 'D'])
+    expect(teams[1].players).toEqual(['B', 'C'])
+  })
+
+  it('players missing a seed sort last, tie-broken by submittedAt', () => {
+    const players: Player[] = [
+      { name: 'NoSeedLate', discordHandle: '', submittedAt: '2026-01-02' },
+      seeded('Seeded0', 0),
+      { name: 'NoSeedEarly', discordHandle: '', submittedAt: '2026-01-01' },
+      seeded('Seeded1', 1),
+    ]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['Seeded0', 'NoSeedLate'])
+    expect(teams[1].players).toEqual(['Seeded1', 'NoSeedEarly'])
+  })
+
+  it('is deterministic across repeated calls', () => {
+    const players = Array.from({ length: 6 }, (_, i) => seeded(`P${i}`, i))
+    const first = seededDistribute(players, 3)
+    const second = seededDistribute(players, 3)
+    expect(first).toEqual(second)
   })
 })

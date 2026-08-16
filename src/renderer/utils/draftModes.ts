@@ -128,6 +128,26 @@ export function filterPlayersByName(players: Player[], query: string): Player[] 
   return players.filter(p => p.name.toLowerCase().includes(q))
 }
 
+/**
+ * Rank players by admin-assigned seed (ascending; unseeded sort last, tie-break
+ * by submittedAt) and snake-assign them across teamCount auto-named teams.
+ * Returns Team[] in the same shape applyPicks produces.
+ */
+export function seededDistribute(players: Player[], teamCount: number): Team[] {
+  if (players.length === 0 || teamCount <= 0) return []
+
+  const ranked = [...players].sort((a, b) => {
+    const aHas = typeof a.seed === 'number'
+    const bHas = typeof b.seed === 'number'
+    if (aHas && bHas && a.seed !== b.seed) return a.seed! - b.seed!
+    if (aHas !== bHas) return aHas ? -1 : 1
+    return a.submittedAt.localeCompare(b.submittedAt)
+  })
+
+  const teams = autoNameTeams(teamCount)
+  return applyPicks(snakeAssign(ranked.map(p => p.name), teams))
+}
+
 export function buildSnakeQueue(teamNames: string[], totalPicks: number): string[] {
   if (teamNames.length === 0 || totalPicks <= 0) return []
   const n = teamNames.length

@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useAsyncAction } from '../hooks/useAsyncAction'
-import { GOOGLE_CREDENTIAL_EXPIRED, type Signups as SignupList, type Sync } from '../../shared/types'
+import { computeTeamCount, seededDistribute } from '../utils/draftModes'
+import { GOOGLE_CREDENTIAL_EXPIRED, type Player, type Signups as SignupList, type Sync, type Tourney } from '../../shared/types'
 
 /**
  * Step 2 — everything about the Google Form and its responses, lifted out of
@@ -64,16 +68,38 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
   const [formIdSaved, setFormIdSaved] = useState(false)
   const [sync, setSync] = useState<Sync | null>(null)
   const [signups, setSignups] = useState<SignupList>([])
+  const [tourney, setTourney] = useState<Tourney | null>(null)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    void Promise.all([window.api.getSync(), window.api.getSignups()]).then(([s, sg]) => {
+    void Promise.all([window.api.getSync(), window.api.getSignups(), window.api.getTourney()]).then(([s, sg, t]) => {
       setSync(s)
       setSignups(sg)
+      setTourney(t)
       if (s.googleFormId) setFormId(s.googleFormId)
     })
   }, [])
+
+  function persistSignups(next: Player[]): void {
+    setSignups(next)
+    const save = (window.api as { saveSignups?: (s: Player[]) => Promise<void> }).saveSignups
+    if (save) void save(next)
+  }
+
+  function handleReorder(event: DragEndEvent): void {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = signups.findIndex(p => p.name === active.id)
+    const newIndex = signups.findIndex(p => p.name === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+    const reordered = arrayMove(signups, oldIndex, newIndex).map((p, i) => ({ ...p, seed: i }))
+    persistSignups(reordered)
+    onChanged?.()
+  }
+
+  const teamCount = computeTeamCount(signups.length, tourney?.teamSize ?? 4)
+  const previewTeams = seededDistribute(signups, teamCount)
 
   const activeFormId = sync?.googleFormId ?? formId.trim()
   const googleExpired = error.includes(GOOGLE_CREDENTIAL_EXPIRED)
@@ -197,32 +223,20 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
           </div>
 
           {signups.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '21rem', overflowY: 'auto' }}>
-              {signups.map((p, i) => (
-                <div
-                  key={p.name}
-                  style={{
-                    display: 'flex',
-                    gap: '0.875rem',
-                    alignItems: 'center',
-                    padding: '0.5rem 0.25rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <span style={{
-                    fontFamily: 'ui-monospace, monospace',
-                    fontSize: '0.85rem',
-                    color: 'rgba(var(--glow-rgb), 0.55)',
-                    minWidth: '1.5rem',
-                    textAlign: 'right',
-                  }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ flex: 1, fontSize: '0.97rem', fontWeight: 600, color: 'var(--color-text)' }}>{p.name}</span>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--color-muted)' }}>{p.discordHandle}</span>
-                </div>
-              ))}
-            </div>
+            <>
+              <p style={{ margin: '0 0 0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' }}>
+                Drag to rank players. Top of the list is the strongest seed.
+              </p>
+              <DndContext onDragEnd={handleReorder}>
+                <SortableContext items={signups.map(p => p.name)} strategy={verticalListSortingStrategy}>
+                  <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '21rem', overflowY: 'auto' }}>
+                    {signups.map((p, i) => (
+                      <SignupRow key={p.name} player={p} index={i} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </>
           ) : (
             <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-muted)' }}>
               No signups yet — press &ldquo;Fetch signups&rdquo; once players have filled in the form.
@@ -230,6 +244,30 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
           )}
         </div>
       </div>
+
+      {signups.length > 0 && (
+        <div style={{ ...CARD, marginTop: '1.125rem' }}>
+          <p style={EYEBROW}>Team preview - {teamCount} team{teamCount === 1 ? '' : 's'} of {tourney?.teamSize ?? 4}</p>
+          <p style={{ margin: '0.5rem 0 1rem', fontSize: '0.9rem', color: 'var(--color-muted)' }}>
+            Read-only split from the current ranking. Adjust the order above to change it.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))', gap: '0.875rem' }}>
+            {previewTeams.map(team => (
+              <div key={team.name} style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '0.6rem',
+                padding: '0.75rem 0.875rem',
+              }}>
+                <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: 'var(--color-gold)', fontSize: '0.95rem' }}>{team.name}</p>
+                <ol style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--color-silver)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                  {team.players.map(name => <li key={name}>{name}</li>)}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {googleExpired && (
         <div style={{
@@ -258,6 +296,37 @@ export function Signups({ onChanged }: SignupsProps = {}): JSX.Element {
       {status && !error && (
         <p className="status-ok" style={{ marginTop: '1rem', fontSize: '0.95rem' }}>{status}</p>
       )}
+    </div>
+  )
+}
+
+function SignupRow({ player, index }: { player: Player; index: number }): JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: player.name })
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    display: 'flex',
+    gap: '0.875rem',
+    alignItems: 'center',
+    padding: '0.5rem 0.25rem',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    cursor: 'grab',
+    background: isDragging ? 'var(--color-card)' : 'transparent',
+    opacity: isDragging ? 0.85 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <span style={{
+        fontFamily: 'ui-monospace, monospace',
+        fontSize: '0.85rem',
+        color: 'rgba(var(--glow-rgb), 0.55)',
+        minWidth: '1.5rem',
+        textAlign: 'right',
+      }}>
+        {index + 1}
+      </span>
+      <span style={{ flex: 1, fontSize: '0.97rem', fontWeight: 600, color: 'var(--color-text)' }}>{player.name}</span>
+      <span style={{ fontSize: '0.875rem', color: 'var(--color-muted)' }}>{player.discordHandle}</span>
     </div>
   )
 }
