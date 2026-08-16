@@ -23,12 +23,17 @@ const NUM_INPUT: CSSProperties = {
 export function Money(): JSX.Element {
   const [balances, setBalances] = useState<Balances>([])
   const [pot, setPot] = useState<Pot>({ total: 0 })
+  const [potInput, setPotInput] = useState<string>('0')
   const [amounts, setAmounts] = useState<Record<string, string>>({})
+  const [paidInputs, setPaidInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     void Promise.all([window.api.getSignups(), window.api.getBalances(), window.api.getPot()]).then(([sg, bal, p]) => {
-      setBalances(reconcile(sg, bal))
+      const reconciled = reconcile(sg, bal)
+      setBalances(reconciled)
       setPot(p)
+      setPotInput(String(p.total))
+      setPaidInputs(Object.fromEntries(reconciled.map(b => [b.name, String(b.paid)])))
     })
   }, [])
 
@@ -41,7 +46,8 @@ export function Money(): JSX.Element {
     persistBalances(balances.map(b => (b.name === name ? { ...b, owed: b.owed + delta } : b)))
   }
 
-  function setPaid(name: string, paid: number): void {
+  function persistPaid(name: string, raw: string): void {
+    const paid = Number(raw) || 0
     persistBalances(balances.map(b => (b.name === name ? { ...b, paid } : b)))
   }
 
@@ -53,6 +59,7 @@ export function Money(): JSX.Element {
   function persistPot(total: number): void {
     const next = { total }
     setPot(next)
+    setPotInput(String(total))
     void window.api.savePot(next)
   }
 
@@ -116,8 +123,9 @@ export function Money(): JSX.Element {
                       <input
                         className="form-input"
                         type="number"
-                        value={b.paid}
-                        onChange={e => setPaid(b.name, Number(e.target.value) || 0)}
+                        value={paidInputs[b.name] ?? String(b.paid)}
+                        onChange={e => setPaidInputs(p => ({ ...p, [b.name]: e.target.value }))}
+                        onBlur={e => persistPaid(b.name, e.target.value)}
                         style={NUM_INPUT}
                       />
                     </td>
@@ -141,12 +149,13 @@ export function Money(): JSX.Element {
             <input
               className="form-input"
               type="number"
-              value={pot.total}
-              onChange={e => persistPot(Number(e.target.value) || 0)}
+              value={potInput}
+              onChange={e => setPotInput(e.target.value)}
+              onBlur={e => persistPot(Number(e.target.value) || 0)}
               style={{ ...NUM_INPUT, width: '100%', textAlign: 'left', fontSize: '1.3rem', fontWeight: 700 }}
             />
           </label>
-          <button onClick={() => persistPot(pot.total)} style={{ ...PRIMARY_BUTTON, marginTop: '1rem', width: '100%' }}>
+          <button onClick={() => persistPot(Number(potInput) || 0)} style={{ ...PRIMARY_BUTTON, marginTop: '1rem', width: '100%' }}>
             Save pot
           </button>
         </div>
