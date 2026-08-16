@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import type { Team } from '../../shared/types'
 
 interface TeamRosterProps {
@@ -6,6 +7,7 @@ interface TeamRosterProps {
   allPlayers?: string[]
   highlightedTeam?: string
   teamSize?: number
+  droppable?: boolean
   onRenameTeam?: (oldName: string, newName: string) => void
   onRemovePlayer?: (teamName: string, playerName: string) => void
   onAddPlayer?: (teamName: string, playerName: string) => void
@@ -16,6 +18,7 @@ interface TeamCardProps {
   unassignedPlayers: string[]
   highlighted?: boolean
   teamSize?: number
+  droppable?: boolean
   onRenameTeam?: (oldName: string, newName: string) => void
   onRemovePlayer?: (teamName: string, playerName: string) => void
   onAddPlayer?: (teamName: string, playerName: string) => void
@@ -26,6 +29,7 @@ function TeamCard({
   unassignedPlayers,
   highlighted = false,
   teamSize,
+  droppable = false,
   onRenameTeam,
   onRemovePlayer,
   onAddPlayer,
@@ -34,6 +38,7 @@ function TeamCard({
   const [nameValue, setNameValue] = useState(team.name)
   const [selectedPlayer, setSelectedPlayer] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const { setNodeRef, isOver } = useDroppable({ id: team.name, disabled: !droppable })
 
   const isEditable = Boolean(onRenameTeam ?? onRemovePlayer ?? onAddPlayer)
   const full = teamSize !== undefined && team.players.length >= teamSize
@@ -60,17 +65,18 @@ function TeamCard({
   }
 
   return (
-    <div style={{
+    <div ref={setNodeRef} style={{
       background: 'var(--color-card)',
       border: '1px solid',
-      borderColor: highlighted
+      borderColor: isOver || highlighted
         ? 'var(--color-gold)'
         : full
           ? 'rgba(var(--glow-rgb), 0.45)'
           : 'var(--color-border)',
-      boxShadow: highlighted ? '0 0 10px rgba(200, 169, 110, 0.35)' : 'none',
+      boxShadow: isOver || highlighted ? '0 0 10px rgba(200, 169, 110, 0.35)' : 'none',
       borderRadius: '0.8rem',
       padding: '1rem 1.125rem',
+      transition: 'border-color 150ms',
     }}>
       <div style={{
         display: 'flex',
@@ -215,6 +221,7 @@ export function TeamRoster({
   allPlayers,
   highlightedTeam,
   teamSize,
+  droppable,
   onRenameTeam,
   onRemovePlayer,
   onAddPlayer,
@@ -239,6 +246,7 @@ export function TeamRoster({
           unassignedPlayers={trulyUnassigned}
           highlighted={highlightedTeam === team.name}
           teamSize={teamSize}
+          droppable={droppable}
           onRenameTeam={onRenameTeam}
           onRemovePlayer={onRemovePlayer}
           onAddPlayer={onAddPlayer}

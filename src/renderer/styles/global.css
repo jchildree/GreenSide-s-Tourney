@@ -315,13 +315,15 @@ button:focus-visible {
   padding: 2rem 1rem;
 }
 .pick-wheel__stage {
-  width: 220px;
-  height: 220px;
+  width: min(360px, 42vh);
+  height: min(360px, 42vh);
 }
 .pick-wheel__svg {
   width: 100%;
   height: 100%;
   filter: drop-shadow(0 0 12px rgba(var(--glow-rgb), 0.3));
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
 }
 .pick-wheel__controls {
   display: flex;

@@ -146,20 +146,23 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
                 ))}
                 {order.map((name, i) => {
                   const angle = wedgeMidAngle(i, count)
-                  const label = polar(angle, RADIUS * 0.62)
+                  const flip = angle > 90 && angle < 270
+                  const rot = flip ? angle + 90 : angle - 90
+                  const p = polar(angle, RADIUS * 0.9)
+                  const label = name.length > 12 ? `${name.slice(0, 11)}...` : name
                   return (
                     <text
                       key={`label-${i}-${name}`}
                       data-testid="wheel-label"
-                      x={label.x}
-                      y={label.y}
+                      x={p.x}
+                      y={p.y}
                       fill="var(--color-bright, var(--color-bg))"
-                      fontSize={count > 8 ? 5 : 7}
-                      textAnchor="middle"
+                      fontSize={count > 16 ? 3.4 : count > 8 ? 4.4 : 6}
+                      textAnchor={flip ? 'start' : 'end'}
                       dominantBaseline="middle"
-                      transform={`rotate(${angle} ${label.x} ${label.y})`}
+                      transform={`rotate(${rot} ${p.x} ${p.y})`}
                     >
-                      {name.length > 10 ? `${name.slice(0, 9)}...` : name}
+                      {label}
                     </text>
                   )
                 })}

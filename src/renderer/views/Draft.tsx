@@ -54,6 +54,7 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
   const [timerRunning, setTimerRunning] = useState(false)
   const sessionRef = useRef<DraftSession>(DEFAULT_DRAFT_SESSION)
   const prevPickCountRef = useRef(0)
+  const loadedRef = useRef(false)
 
   useEffect(() => {
     void Promise.all([
@@ -78,8 +79,14 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
         const count = computeTeamCount(s.length, t.teamSize ?? 4)
         setTeamNames(autoNameTeams(count))
       }
+      loadedRef.current = true
     })
   }, [])
+
+  useEffect(() => {
+    if (!loadedRef.current) return
+    void window.api.saveDraft(picks)
+  }, [picks])
 
   const playerNames = signups.map(p => p.name)
   const teams: Team[] = applyPicks(picks)
@@ -297,19 +304,24 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginLeft: 'auto' }}>
-          <Timer
-            durationSeconds={timerDuration}
-            remainingSeconds={remainingSeconds}
-            running={timerRunning}
-            onDurationChange={handleDurationChange}
-            onToggle={() => setTimerRunning(r => !r)}
-            onReset={() => { setRemainingSeconds(timerDuration); setTimerRunning(false) }}
-            onTick={setRemainingSeconds}
-            onExpire={() => {
-              if (mode === 'snake' && currentSnakeTeam) advanceSnakePick()
-              else setTimerRunning(false)
-            }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+            <Timer
+              durationSeconds={timerDuration}
+              remainingSeconds={remainingSeconds}
+              running={timerRunning}
+              onDurationChange={handleDurationChange}
+              onToggle={() => setTimerRunning(r => !r)}
+              onReset={() => { setRemainingSeconds(timerDuration); setTimerRunning(false) }}
+              onTick={setRemainingSeconds}
+              onExpire={() => {
+                if (mode === 'snake' && currentSnakeTeam) advanceSnakePick()
+                else setTimerRunning(false)
+              }}
+            />
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)', textAlign: 'right' }}>
+              {unassigned.length} player{unassigned.length === 1 ? '' : 's'} left to draft
+            </span>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <button onClick={handleSave} style={PRIMARY_BUTTON} data-testid="save-draft">Save draft</button>
             <button onClick={handleReset} style={{ ...GHOST_BUTTON, color: 'var(--color-muted)' }}>Reset draft</button>
@@ -344,6 +356,7 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
               teams={teams}
               allPlayers={playerNames}
               teamSize={tourney?.teamSize ?? 4}
+              droppable={mode === 'manual'}
               highlightedTeam={mode === 'snake' ? currentSnakeTeam ?? undefined : undefined}
               onRenameTeam={handleRenameTeam}
               onRemovePlayer={handleRemovePlayer}
@@ -397,7 +410,8 @@ function PlayerPool({ players, picks, draggable, dragActive, selectedPlayer, onS
         borderRadius: '0.8rem',
         padding: '1rem',
         minHeight: '19rem',
-        maxHeight: 'calc(100vh - 22rem)',
+        height: 'calc(100vh - 20rem)',
+        maxHeight: 'calc(100vh - 14rem)',
         overflowY: 'auto',
         transition: 'border-color 150ms',
       }}

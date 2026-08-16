@@ -13,4 +13,10 @@ describe('TeamRoster', () => {
     render(<TeamRoster teams={[]} />)
     expect(screen.getByText(/no teams/i)).toBeInTheDocument()
   })
+
+  it('renders filled teams as drop targets without a DndContext wrapper', () => {
+    render(<TeamRoster droppable teams={[{ name: 'Alpha', players: ['Alice'] }]} />)
+    expect(screen.getByText('Alpha')).toBeInTheDocument()
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+  })
 })
