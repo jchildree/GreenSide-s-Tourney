@@ -160,5 +160,19 @@ export interface ChallongeParticipant {
   name: string
 }
 
+export interface PlayerBalance {
+  name: string
+  owed: number
+  paid: number
+}
+
+export type Balances = PlayerBalance[]
+
+export interface Pot {
+  total: number
+}
+
+export const DEFAULT_POT: Pot = { total: 0 }
+
 export const CHALLONGE_CREDENTIAL_EXPIRED = 'CHALLONGE_CREDENTIAL_EXPIRED'
 export const GOOGLE_CREDENTIAL_EXPIRED = 'GOOGLE_CREDENTIAL_EXPIRED'

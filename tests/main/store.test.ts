@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
 }))
 
 // Import after mocks
-const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, clearTournamentData, readConfig } =
+const { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, clearTournamentData, readConfig, readBalances, saveBalances, readPot, savePot } =
   await import('../../src/main/store')
 
 const DEFAULT = {
@@ -85,6 +85,52 @@ describe('saveDraft / readDraft round-trip', () => {
     vi.mocked(fs.readFileSync).mockImplementation(() => stored)
     saveDraft(draft)
     expect(readDraft()).toEqual(draft)
+  })
+})
+
+describe('balances round-trip', () => {
+  it('returns empty array when file missing', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false)
+    vi.mocked(fs.writeFileSync).mockImplementation(() => {})
+    vi.mocked(fs.readFileSync).mockReturnValue('[]')
+    expect(readBalances()).toEqual([])
+  })
+
+  it('writes balances and reads them back', () => {
+    const balances = [{ name: 'Alice', owed: 20, paid: 5 }]
+    let stored = ''
+    vi.mocked(fs.writeFileSync).mockImplementation((_p, data) => { stored = data as string })
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    vi.mocked(fs.readFileSync).mockImplementation(() => stored)
+    saveBalances(balances)
+    expect(readBalances()).toEqual(balances)
+  })
+})
+
+describe('pot round-trip', () => {
+  it('returns default total 0 when file missing', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false)
+    vi.mocked(fs.writeFileSync).mockImplementation(() => {})
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ total: 0 }))
+    expect(readPot()).toEqual({ total: 0 })
+  })
+
+  it('writes pot and reads it back', () => {
+    let stored = ''
+    vi.mocked(fs.writeFileSync).mockImplementation((_p, data) => { stored = data as string })
+    vi.mocked(fs.existsSync).mockReturnValue(true)
+    vi.mocked(fs.readFileSync).mockImplementation(() => stored)
+    savePot({ total: 150 })
+    expect(readPot()).toEqual({ total: 150 })
+  })
+})
+
+describe('owed add/subtract math', () => {
+  const adjust = (owed: number, delta: number): number => owed + delta
+  it('adds and subtracts an enterable amount', () => {
+    expect(adjust(10, 5)).toBe(15)
+    expect(adjust(10, -3)).toBe(7)
+    expect(adjust(0, -5)).toBe(-5)
   })
 })
 

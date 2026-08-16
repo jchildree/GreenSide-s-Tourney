@@ -7,6 +7,7 @@ import { Draft } from './views/Draft'
 import { Bracket } from './views/Bracket'
 import { Matches } from './views/Matches'
 import { Settings } from './views/Settings'
+import { Money } from './views/Money'
 import { Onboarding } from './views/Onboarding'
 import { useTournamentProgress } from './hooks/useTournamentProgress'
 import { applyTheme } from './theme'
@@ -117,6 +118,7 @@ export function App(): JSX.Element {
           {view === 'draft' && <Draft onChanged={() => void progress.reload()} />}
           {view === 'publish' && <Bracket onChanged={() => void progress.reload()} />}
           {view === 'live' && <Matches />}
+          {view === 'money' && <Money />}
           {view === 'settings' && (
             <Settings
               onCleared={() => { void progress.reload(); setView('home') }}
