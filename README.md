@@ -1,3 +1,5 @@
+<img width="1408" height="768" alt="Gemini_Generated_Image_sztawcsztawcszta" src="https://github.com/user-attachments/assets/3938d9e1-a639-458a-9151-c45e0f95de9f" />
+
 # The Colosseum
 
 A desktop app for running custom video game tournaments end-to-end - no manual updates to external services needed.
@@ -74,3 +76,4 @@ tests/           # Vitest unit tests mirroring src/
 ## License
 
 Private.
+<img width="1408" height="768" alt="Gemini_Generated_Image_hzouzshzouzshzou" src="https://github.com/user-attachments/assets/bb3a6285-5dd7-4f49-ae2c-be716ce86a85" />
