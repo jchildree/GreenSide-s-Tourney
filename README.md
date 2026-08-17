@@ -74,6 +74,6 @@ tests/           # Vitest unit tests mirroring src/
 ```
 
 ## License
+MIT
 
-Private.
 <img width="1408" height="768" alt="Gemini_Generated_Image_hzouzshzouzshzou" src="https://github.com/user-attachments/assets/bb3a6285-5dd7-4f49-ae2c-be716ce86a85" />
