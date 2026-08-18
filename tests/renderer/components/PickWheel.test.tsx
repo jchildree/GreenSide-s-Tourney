@@ -46,22 +46,48 @@ describe('PickWheel', () => {
       <PickWheel players={PLAYERS} onSpinComplete={onSpinComplete} onSpinStart={onSpinStart} />
     )
 
+    vi.useFakeTimers()
     fireEvent.click(screen.getByTestId('spin-wheel'))
     expect(onSpinStart).toHaveBeenCalledOnce()
 
     fireTransformEnd(screen.getByTestId('wheel-rotor'))
+    vi.runAllTimers()
     expect(onSpinComplete).toHaveBeenCalledOnce()
     expect(PLAYERS).toContain(onSpinComplete.mock.calls[0][0])
+    vi.useRealTimers()
   })
 
   it('does not double-fire onSpinComplete on a second transition end', () => {
     const onSpinComplete = vi.fn()
     render(<PickWheel players={PLAYERS} onSpinComplete={onSpinComplete} />)
 
+    vi.useFakeTimers()
     fireEvent.click(screen.getByTestId('spin-wheel'))
     fireTransformEnd(screen.getByTestId('wheel-rotor'))
     fireTransformEnd(screen.getByTestId('wheel-rotor'))
+    vi.runAllTimers()
     expect(onSpinComplete).toHaveBeenCalledOnce()
+    vi.useRealTimers()
+  })
+
+  it('lands the winner under the top caret on every spin, not just the first', () => {
+    // Winner index 1 of 4 -> wedge mid at 90 + 45 = 135deg; expected rest angle 360-135=225.
+    vi.spyOn(Math, 'random').mockReturnValue(0.3)
+    render(<PickWheel players={PLAYERS} onSpinComplete={() => {}} />)
+    const rotor = screen.getByTestId('wheel-rotor')
+    const restAngle = (): number => {
+      const m = /rotate\(([-\d.]+)deg\)/.exec(rotor.style.transform)
+      const deg = m ? parseFloat(m[1]) : 0
+      return ((deg % 360) + 360) % 360
+    }
+
+    fireEvent.click(screen.getByTestId('spin-wheel'))
+    expect(restAngle()).toBeCloseTo(225, 1)
+    fireTransformEnd(rotor)
+
+    fireEvent.click(screen.getByTestId('spin-wheel'))
+    expect(restAngle()).toBeCloseTo(225, 1)
+    vi.restoreAllMocks()
   })
 
   it('Shuffle changes the wedge order', () => {

@@ -8,6 +8,29 @@ interface PickWheelProps {
 
 const RADIUS = 90
 const CENTER = 100
+const REVEAL_MS = 900
+
+let tickCtx: AudioContext | null = null
+
+/** Short square-wave click, the peg-against-flapper tick of a spinning wheel. */
+function playTick(): void {
+  try {
+    tickCtx = tickCtx ?? new AudioContext()
+    const ctx = tickCtx
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'square'
+    osc.frequency.value = 1100
+    gain.gain.setValueAtTime(0.12, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.025)
+  } catch {
+    // audio not available in test environments
+  }
+}
 
 /** Fisher-Yates shuffle returning a new array (mirrors draftModes.ts). */
 function shuffle<T>(arr: T[]): T[] {
@@ -58,8 +81,8 @@ function wedgeMidAngle(index: number, count: number): number {
   return index * slice + slice / 2
 }
 
-function wedgeFill(index: number, count: number): string {
-  if (count % 2 === 1 && index === count - 1) return 'var(--color-gold)'
+function wedgeFill(index: number, winnerIdx: number | null): string {
+  if (index === winnerIdx) return 'var(--color-gold)'
   return index % 2 === 0 ? 'var(--color-primary)' : 'var(--color-card)'
 }
 
@@ -74,17 +97,52 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
   const [spinning, setSpinning] = useState(false)
   const spinningRef = useRef(false)
   const winnerRef = useRef<string | null>(null)
+  const winnerIndexRef = useRef(-1)
+  const rotorRef = useRef<SVGGElement | null>(null)
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [winnerIdx, setWinnerIdx] = useState<number | null>(null)
 
   // Reset local wedge order whenever the incoming players change.
   useEffect(() => {
     setOrder(players)
+    setWinnerIdx(null)
   }, [players])
+
+  useEffect(() => () => { if (revealTimerRef.current) clearTimeout(revealTimerRef.current) }, [])
 
   const empty = order.length === 0
   const count = order.length
 
+  function startTicking(sliceCount: number): void {
+    let lastSlice = -1
+    const step = (): void => {
+      if (!spinningRef.current) return
+      const node = rotorRef.current
+      try {
+        if (node && typeof DOMMatrixReadOnly !== 'undefined') {
+          const t = getComputedStyle(node).transform
+          if (t && t !== 'none') {
+            const m = new DOMMatrixReadOnly(t)
+            const ang = (Math.atan2(m.b, m.a) * 180) / Math.PI
+            const topSlice = Math.floor((((360 - ang) % 360) / (360 / sliceCount)) % sliceCount)
+            if (topSlice !== lastSlice) {
+              if (lastSlice !== -1) playTick()
+              lastSlice = topSlice
+            }
+          }
+        }
+      } catch {
+        // getComputedStyle/DOMMatrix unavailable (e.g. test env) -- skip ticks.
+      }
+      requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }
+
   function spin(): void {
     if (empty || spinningRef.current) return
+    if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null }
+    setWinnerIdx(null)
     spinningRef.current = true
     setSpinning(true)
     onSpinStart?.()
@@ -92,21 +150,32 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
     // Unchanged winner selection: uniform random pick over players.
     const winnerIndex = Math.floor(Math.random() * count)
     winnerRef.current = order[winnerIndex]
+    winnerIndexRef.current = winnerIndex
 
     const fullTurns = 4 + Math.floor(Math.random() * 3) // 4-6
     const mid = wedgeMidAngle(winnerIndex, count)
-    // Land the winner's midpoint under the top pointer.
-    const target = rotation + 360 * fullTurns + (360 - mid)
+    // Measure the landing angle from the wheel's current resting angle, else the
+    // accumulated rotation drifts the winner off the caret on every spin but the first.
+    const current = ((rotation % 360) + 360) % 360
+    const toTop = ((360 - mid - current) % 360 + 360) % 360
+    const target = rotation + 360 * fullTurns + toTop
     setRotation(target)
+    startTicking(count)
   }
 
   function handleTransitionEnd(e: TransitionEvent<SVGGElement>): void {
     if (e.propertyName !== 'transform' || !spinningRef.current) return
     spinningRef.current = false
     setSpinning(false)
+    setWinnerIdx(winnerIndexRef.current)
     const winner = winnerRef.current
     winnerRef.current = null
-    if (winner != null) onSpinComplete(winner)
+    // Reveal the gold winner wedge under the caret before handing it off (which
+    // removes the player from the pool and re-renders the wheel without them).
+    revealTimerRef.current = setTimeout(() => {
+      revealTimerRef.current = null
+      if (winner != null) onSpinComplete(winner)
+    }, REVEAL_MS)
   }
 
   function handleShuffle(): void {
@@ -123,6 +192,7 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
           <div className="pick-wheel__stage">
             <svg viewBox="0 0 200 200" className="pick-wheel__svg" role="img" aria-label="Draft wheel">
               <g
+                ref={rotorRef}
                 className="pick-wheel__rotor"
                 data-testid="wheel-rotor"
                 onTransitionEnd={handleTransitionEnd}
@@ -139,7 +209,7 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
                     key={`${i}-${name}`}
                     data-testid="wheel-wedge"
                     d={wedgePath(i, count, RADIUS)}
-                    fill={wedgeFill(i, count)}
+                    fill={wedgeFill(i, winnerIdx)}
                     stroke="var(--color-border)"
                     strokeWidth={0.5}
                   />
@@ -170,7 +240,7 @@ export function PickWheel({ players, onSpinComplete, onSpinStart }: PickWheelPro
               {/* Fixed pointer at top, outside the rotating group. */}
               <polygon
                 className="pick-wheel__pointer"
-                points="100,4 92,20 108,20"
+                points="100,24 91,4 109,4"
                 fill="var(--color-gold)"
                 stroke="var(--color-border)"
                 strokeWidth={0.5}
