@@ -3,6 +3,7 @@ import type { Player } from '../../src/shared/types'
 import {
   computeTeamCount,
   autoNameTeams,
+  reconcileTeamNames,
   randomAssign,
   snakeAssign,
   applyPicks,
@@ -43,6 +44,24 @@ describe('computeTeamCount', () => {
 
   it('returns exact count when evenly divisible', () => {
     expect(computeTeamCount(12, 4)).toBe(3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// reconcileTeamNames
+// ---------------------------------------------------------------------------
+describe('reconcileTeamNames', () => {
+  it('re-adds auto-named fillers for empty teams dropped on persist', () => {
+    expect(reconcileTeamNames(['Team 1'], 3)).toEqual(['Team 1', 'Team 2', 'Team 3'])
+  })
+
+  it('leaves surviving teams untouched when the count already matches', () => {
+    expect(reconcileTeamNames(['Alpha', 'Bravo', 'Team 3'], 3)).toEqual(['Alpha', 'Bravo', 'Team 3'])
+  })
+
+  it('keeps extra saved teams beyond the expected count', () => {
+    expect(reconcileTeamNames(['Team 1', 'Team 2', 'Team 3', 'Team 4'], 3))
+      .toEqual(['Team 1', 'Team 2', 'Team 3', 'Team 4'])
   })
 })
 

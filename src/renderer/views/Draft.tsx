@@ -9,6 +9,7 @@ import { GHOST_BUTTON, PRIMARY_BUTTON, VIEW_TITLE, disabledIf } from '../compone
 import {
   computeTeamCount,
   autoNameTeams,
+  reconcileTeamNames,
   randomAssign,
   snakeAssign,
   applyPicks,
@@ -69,15 +70,15 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
       setTimerDuration(session.timerDuration)
       setRemainingSeconds(session.remainingSeconds)
       if (t.draftStyle) setMode(t.draftStyle as DraftMode)
+      const expected = computeTeamCount(s.length, t.teamSize ?? 4)
       if (d.teams.length > 0) {
-        setTeamNames(d.teams.map(tm => tm.name))
+        setTeamNames(reconcileTeamNames(d.teams.map(tm => tm.name), expected))
         const restoredPicks: DraftPick[] = d.teams.flatMap(tm =>
           tm.players.map((p, pi) => ({ playerName: p, teamName: tm.name, pickNumber: pi + 1 }))
         )
         setPicks(restoredPicks)
       } else {
-        const count = computeTeamCount(s.length, t.teamSize ?? 4)
-        setTeamNames(autoNameTeams(count))
+        setTeamNames(autoNameTeams(expected))
       }
       loadedRef.current = true
     })

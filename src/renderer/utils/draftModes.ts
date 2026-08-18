@@ -44,6 +44,16 @@ export function autoNameTeams(count: number): string[] {
 }
 
 /**
+ * Persistence (buildDraftFromPicks) drops teams that have no picks, so a reload
+ * can come back with fewer teams than the tournament needs. Re-add auto-named
+ * fillers up to the expected count without disturbing the teams that survived.
+ */
+export function reconcileTeamNames(savedNames: string[], expected: number): string[] {
+  const fillers = autoNameTeams(expected).filter(n => !savedNames.includes(n))
+  return [...savedNames, ...fillers].slice(0, Math.max(savedNames.length, expected))
+}
+
+/**
  * Randomly assign players to teams (round-robin after Fisher-Yates shuffle).
  * Returns DraftPick[] in assignment order (1-based pickNumber).
  */
