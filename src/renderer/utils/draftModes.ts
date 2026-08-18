@@ -44,6 +44,14 @@ export function autoNameTeams(count: number): string[] {
 }
 
 /**
+ * Category labels for a category draft: one per roster slot (team size 4 -> A, B, C, D).
+ */
+export function categoryLabels(teamSize: number): string[] {
+  const n = Math.min(26, Math.max(1, Math.floor(teamSize)))
+  return Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i))
+}
+
+/**
  * Persistence (buildDraftFromPicks) drops teams that have no picks, so a reload
  * can come back with fewer teams than the tournament needs. Re-add auto-named
  * fillers up to the expected count without disturbing the teams that survived.

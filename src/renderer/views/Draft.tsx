@@ -5,11 +5,13 @@ import { Timer } from '../components/Timer'
 import { PlayerCard } from '../components/PlayerCard'
 import { TeamRoster } from '../components/TeamRoster'
 import { PickWheel } from '../components/PickWheel'
+import { CategoryBoard } from '../components/CategoryBoard'
 import { GHOST_BUTTON, PRIMARY_BUTTON, VIEW_TITLE, disabledIf } from '../components/ui'
 import {
   computeTeamCount,
   autoNameTeams,
   reconcileTeamNames,
+  categoryLabels,
   randomAssign,
   snakeAssign,
   applyPicks,
@@ -20,18 +22,20 @@ import {
 import type { Player, Team, DraftPick, Tourney, DraftSession } from '../../shared/types'
 import { DEFAULT_DRAFT_SESSION } from '../../shared/types'
 
-type DraftMode = 'random' | 'snake' | 'manual'
+type DraftMode = 'random' | 'snake' | 'manual' | 'category'
 
 const MODE_LABELS: Record<DraftMode, string> = {
   random: 'Random wheel',
   snake: 'Snake draft',
   manual: 'Manual',
+  category: 'Category draft',
 }
 
 const MODE_HINTS: Record<DraftMode, string> = {
   random: 'Spin the wheel — each winner joins the next team in line. Or press “Assign all” to fill every team at once.',
   snake: 'Teams pick in turn, and the order reverses each round. Spin or click a player, then confirm the pick.',
   manual: 'Drag players from the pool onto a team. Drag them back to the pool to undo.',
+  category: 'Drag players into categories (one per roster slot), then spin each category to give every team one player from it.',
 }
 
 interface DraftProps {
@@ -53,6 +57,8 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
   const [timerDuration, setTimerDuration] = useState(60)
   const [remainingSeconds, setRemainingSeconds] = useState(60)
   const [timerRunning, setTimerRunning] = useState(false)
+  const [categoryOf, setCategoryOf] = useState<Record<string, string>>({})
+  const [activeCategory, setActiveCategory] = useState('')
   const sessionRef = useRef<DraftSession>(DEFAULT_DRAFT_SESSION)
   const prevPickCountRef = useRef(0)
   const loadedRef = useRef(false)
@@ -69,6 +75,7 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
       sessionRef.current = session
       setTimerDuration(session.timerDuration)
       setRemainingSeconds(session.remainingSeconds)
+      setCategoryOf(session.categories ?? {})
       if (t.draftStyle) setMode(t.draftStyle as DraftMode)
       const expected = computeTeamCount(s.length, t.teamSize ?? 4)
       if (d.teams.length > 0) {
@@ -94,6 +101,27 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
   const unassigned = unassignedPlayers(playerNames, picks)
   const snakeQueue = buildSnakeQueue(teamNames, playerNames.length)
   const currentSnakeTeam = snakeQueue[snakePickIdx] ?? null
+  const categories = categoryLabels(tourney?.teamSize ?? 4)
+  const activeCat = activeCategory || categories[0] || ''
+
+  function updateCategory(player: string, category: string | null): void {
+    setCategoryOf(prev => {
+      const next = { ...prev }
+      if (category === null) delete next[player]
+      else next[player] = category
+      const session = { ...sessionRef.current, categories: next }
+      sessionRef.current = session
+      void window.api.saveDraftSession(session)
+      return next
+    })
+  }
+
+  function handleCategoryWinner(category: string, name: string): void {
+    const filled = new Set(picks.filter(p => categoryOf[p.playerName] === category).map(p => p.teamName))
+    const nextTeam = teamNames.find(t => !filled.has(t))
+    if (!nextTeam) return
+    setPicks(prev => [...prev, { playerName: name, teamName: nextTeam, pickNumber: prev.length + 1 }])
+  }
 
   useEffect(() => {
     if (mode === 'snake') return
@@ -244,7 +272,7 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
         flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {(['random', 'snake', 'manual'] as DraftMode[]).map(m => (
+          {(['random', 'snake', 'manual', 'category'] as DraftMode[]).map(m => (
             <button key={m} style={modeBtn(m)} onClick={() => setMode(m)}>
               {MODE_LABELS[m]}
             </button>
@@ -341,6 +369,32 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
         </p>
       )}
 
+      {mode === 'category' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+          <CategoryBoard
+            players={signups}
+            categories={categories}
+            categoryOf={categoryOf}
+            teamNames={teamNames}
+            picks={picks}
+            activeCategory={activeCat}
+            onSetActive={setActiveCategory}
+            onAssign={updateCategory}
+            onWinner={handleCategoryWinner}
+          />
+          <TeamRoster
+            teams={teams}
+            allPlayers={playerNames}
+            teamSize={tourney?.teamSize ?? 4}
+            onRenameTeam={handleRenameTeam}
+            onRemovePlayer={handleRemovePlayer}
+            onAddPlayer={handleAddPlayer}
+          />
+          {teamNames.filter(n => !teams.find(t => t.name === n)).map(name => (
+            <TeamDropZone key={name} teamName={name} mode={mode} />
+          ))}
+        </div>
+      ) : (
       <DndContext onDragEnd={handleDragEnd} onDragStart={e => setDragActive(e.active.id as string)}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(18rem, 22rem) 1fr', gap: '1.125rem', alignItems: 'start' }}>
           <PlayerPool
@@ -383,6 +437,7 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
           })()}
         </DragOverlay>
       </DndContext>
+      )}
     </div>
   )
 }

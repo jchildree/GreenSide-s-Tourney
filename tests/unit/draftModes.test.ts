@@ -4,6 +4,7 @@ import {
   computeTeamCount,
   autoNameTeams,
   reconcileTeamNames,
+  categoryLabels,
   randomAssign,
   snakeAssign,
   applyPicks,
@@ -62,6 +63,16 @@ describe('reconcileTeamNames', () => {
   it('keeps extra saved teams beyond the expected count', () => {
     expect(reconcileTeamNames(['Team 1', 'Team 2', 'Team 3', 'Team 4'], 3))
       .toEqual(['Team 1', 'Team 2', 'Team 3', 'Team 4'])
+  })
+})
+
+describe('categoryLabels', () => {
+  it('returns one letter label per roster slot', () => {
+    expect(categoryLabels(4)).toEqual(['A', 'B', 'C', 'D'])
+  })
+
+  it('guards a minimum of one category', () => {
+    expect(categoryLabels(0)).toEqual(['A'])
   })
 })
 

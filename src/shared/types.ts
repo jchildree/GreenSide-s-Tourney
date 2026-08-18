@@ -135,6 +135,7 @@ export interface DraftSession {
   remainingSeconds: number
   currentPickIndex: number
   pickQueue: PickQueueEntry[]
+  categories?: Record<string, string>   // playerName -> category label (A, B, ...)
 }
 
 export const DEFAULT_DRAFT_SESSION: DraftSession = {
