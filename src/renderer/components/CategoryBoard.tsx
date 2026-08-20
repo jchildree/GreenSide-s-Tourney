@@ -1,7 +1,8 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { DndContext, DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core'
 import { PlayerCard } from './PlayerCard'
 import { PickWheel } from './PickWheel'
+import { filterPlayersByName } from '../utils/draftModes'
 import type { Player, DraftPick } from '../../shared/types'
 
 const POOL_ID = 'pool'
@@ -30,7 +31,9 @@ export function CategoryBoard({
   onAssign,
   onWinner,
 }: CategoryBoardProps): JSX.Element {
+  const [query, setQuery] = useState('')
   const unassigned = players.filter(p => !categoryOf[p.name])
+  const shownUnassigned = filterPlayersByName(unassigned, query)
   const membersOf = (label: string): Player[] => players.filter(p => categoryOf[p.name] === label)
   const drafted = new Set(picks.map(p => p.playerName))
   const teamsFilledFor = (label: string): Set<string> =>
@@ -97,14 +100,33 @@ export function CategoryBoard({
       </div>
 
       <DndContext onDragEnd={handleDragEnd}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(14rem, 17rem) 1fr', gap: '1.125rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(14rem, 17rem) minmax(0, 1fr)', gap: '1.125rem', alignItems: 'start' }}>
           <Bucket id={POOL_ID} title={`Unassigned - ${unassigned.length}`}>
+            <input
+              type="search"
+              placeholder="Search players..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                marginBottom: '0.6rem',
+                background: 'var(--color-card)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '0.5rem',
+                padding: '0.45rem 0.6rem',
+                color: 'var(--color-text)',
+                fontSize: '0.85rem',
+              }}
+            />
             {unassigned.length === 0
               ? <Empty text="Everyone is bucketed." />
-              : unassigned.map(p => <DraggablePlayer key={p.name} player={p} />)}
+              : shownUnassigned.length === 0
+                ? <Empty text="No match." />
+                : shownUnassigned.map(p => <DraggablePlayer key={p.name} player={p} />)}
           </Bucket>
 
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${categories.length}, 1fr)`, gap: '0.875rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${categories.length}, minmax(0, 1fr))`, gap: '0.875rem' }}>
             {categories.map(label => {
               const members = membersOf(label)
               const full = members.length >= teamNames.length
@@ -153,6 +175,7 @@ function Bucket({ id, title, accent, active, onSelect, children }: BucketProps):
         borderRadius: '0.8rem',
         padding: '0.85rem',
         minHeight: '10rem',
+        minWidth: 0,
         transition: 'border-color 150ms',
       }}
     >
