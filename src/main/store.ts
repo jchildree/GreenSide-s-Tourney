@@ -1,8 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
-import type { Tourney, Signups, Draft, Sync, AppConfig, DraftSession, DraftPick, Team } from '../shared/types'
-import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC, DEFAULT_CONFIG, DEFAULT_DRAFT_SESSION } from '../shared/types'
+import type { Tourney, Signups, Draft, Sync, AppConfig, DraftSession, DraftPick, Team, Balances, Pot } from '../shared/types'
+import { DEFAULT_TOURNEY, DEFAULT_DRAFT, DEFAULT_SYNC, DEFAULT_CONFIG, DEFAULT_DRAFT_SESSION, DEFAULT_POT } from '../shared/types'
 
 function dataDir(): string {
   return path.join(app.getPath('userData'), 'data')
@@ -60,7 +60,13 @@ export function saveConfig(c: AppConfig): void { writeJson('config.json', c) }
 export function readDraftSession(): DraftSession { return readJson('draft-session.json', DEFAULT_DRAFT_SESSION) }
 export function saveDraftSession(s: DraftSession): void { writeJson('draft-session.json', s) }
 
-const TOURNAMENT_DATA_FILES = ['tourney.json', 'signups.json', 'draft.json', 'draft-session.json', 'sync.json']
+export function readBalances(): Balances { return readJson('balances.json', []) }
+export function saveBalances(b: Balances): void { writeJson('balances.json', b) }
+
+export function readPot(): Pot { return readJson('pot.json', DEFAULT_POT) }
+export function savePot(p: Pot): void { writeJson('pot.json', p) }
+
+const TOURNAMENT_DATA_FILES = ['tourney.json', 'signups.json', 'draft.json', 'draft-session.json', 'sync.json', 'balances.json', 'pot.json']
 
 export function clearTournamentData(): void {
   for (const name of TOURNAMENT_DATA_FILES) {

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Step, StepId } from '../hooks/useTournamentProgress'
 
-export type View = StepId | 'home' | 'settings'
+export type View = StepId | 'home' | 'money' | 'settings'
 
 interface SidebarProps {
   view: View
@@ -152,6 +152,7 @@ export function Sidebar({ view, steps, onNavigate, googleConnected, challongeCon
 
       <div style={{ flex: 1 }} />
 
+      {item('money', 'Money', '$')}
       {item('settings', 'Settings', '⚙')}
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 0.625rem 0.125rem' }}>

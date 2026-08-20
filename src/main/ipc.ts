@@ -1,5 +1,5 @@
 import { ipcMain, shell } from 'electron'
-import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData, readConfig, saveConfig } from './store'
+import { readTourney, saveTourney, readSignups, saveSignups, readDraft, saveDraft, readSync, saveSync, readDraftSession, saveDraftSession, buildDraftFromPicks, clearTournamentData, readConfig, saveConfig, readBalances, saveBalances, readPot, savePot } from './store'
 import { getCredential, saveCredential, deleteCredential } from './keychain'
 import { pushToChallonge, startTournament, startTournamentV1, fetchMatches, fetchMatchesV1, updateMatch, updateMatchV1 } from './integrations/challonge'
 import { updateGoogleForm, fetchSignups } from './integrations/google'
@@ -7,7 +7,7 @@ import { beginGoogleOAuth } from './auth/google-oauth'
 import { beginChallongeOAuth } from './auth/challonge-oauth'
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, CHALLONGE_CLIENT_ID, CHALLONGE_CLIENT_SECRET, CHALLONGE_API_KEY } from './auth/oauth-config'
 import { backgroundDataUrl, chooseBackground, removeBackground } from './appearance'
-import type { Tourney, DraftPick, OnboardingStatus, DraftSession, ThemeId, Appearance } from '../shared/types'
+import type { Tourney, DraftPick, OnboardingStatus, DraftSession, ThemeId, Appearance, Balances, Pot, Player } from '../shared/types'
 import { CRED, CHALLONGE_CREDENTIAL_EXPIRED, GOOGLE_CREDENTIAL_EXPIRED, THEME_IDS } from '../shared/types'
 import { withCredentialGuard } from './credential-guard'
 
@@ -16,6 +16,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('save-tourney', (_e, config: Tourney) => saveTourney(config))
 
   ipcMain.handle('get-signups', () => readSignups())
+  ipcMain.handle('save-signups', (_e, signups: Player[]) => saveSignups(signups))
+
+  ipcMain.handle('get-balances', () => readBalances())
+  ipcMain.handle('save-balances', (_e, balances: Balances) => saveBalances(balances))
+
+  ipcMain.handle('get-pot', () => readPot())
+  ipcMain.handle('save-pot', (_e, pot: Pot) => savePot(pot))
 
   ipcMain.handle('get-draft', () => readDraft())
   ipcMain.handle('save-draft', (_e, picks: DraftPick[]) => saveDraft(buildDraftFromPicks(picks)))

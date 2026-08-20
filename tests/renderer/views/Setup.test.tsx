@@ -5,7 +5,9 @@ import { Setup } from '../../../src/renderer/views/Setup'
 
 const mockTourney = {
   name: 'Test Cup', game: 'Minecraft', dateTime: '2026-06-01T18:00',
-  signupDeadline: '2026-05-31T18:00', draftStyle: 'random' as const, minPlayers: 4, maxPlayers: 16
+  signupDeadline: '2026-05-31T18:00', draftStyle: 'random' as const,
+  eliminationType: 'single' as const, maps: [], rules: '',
+  minPlayers: 4, maxPlayers: 16, teamNames: [], teamSize: 4, streamLink: '', enabledFields: {}
 }
 
 beforeEach(() => {

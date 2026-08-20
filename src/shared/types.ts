@@ -13,6 +13,9 @@ export interface Tourney {
   dateTime: string        // ISO 8601
   signupDeadline: string  // ISO 8601
   draftStyle: DraftStyle
+  eliminationType: 'single' | 'double'
+  maps: string[][]
+  rules: string
   minPlayers: number
   maxPlayers: number
   teamNames: string[]     // team slot names for draft
@@ -25,6 +28,7 @@ export interface Player {
   name: string
   discordHandle: string
   submittedAt: string     // ISO 8601
+  seed?: number           // 0-based rank set by admin reorder; unset sorts last
 }
 
 export type Signups = Player[]
@@ -59,6 +63,9 @@ export const DEFAULT_TOURNEY: Tourney = {
   dateTime: '',
   signupDeadline: '',
   draftStyle: 'random',
+  eliminationType: 'single',
+  maps: [],
+  rules: '',
   minPlayers: 2,
   maxPlayers: 32,
   teamNames: [],
@@ -128,6 +135,7 @@ export interface DraftSession {
   remainingSeconds: number
   currentPickIndex: number
   pickQueue: PickQueueEntry[]
+  categories?: Record<string, string>   // playerName -> category label (A, B, ...)
 }
 
 export const DEFAULT_DRAFT_SESSION: DraftSession = {
@@ -152,6 +160,20 @@ export interface ChallongeParticipant {
   id: string
   name: string
 }
+
+export interface PlayerBalance {
+  name: string
+  owed: number
+  paid: number
+}
+
+export type Balances = PlayerBalance[]
+
+export interface Pot {
+  total: number
+}
+
+export const DEFAULT_POT: Pot = { total: 0 }
 
 export const CHALLONGE_CREDENTIAL_EXPIRED = 'CHALLONGE_CREDENTIAL_EXPIRED'
 export const GOOGLE_CREDENTIAL_EXPIRED = 'GOOGLE_CREDENTIAL_EXPIRED'

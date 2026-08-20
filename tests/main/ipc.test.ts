@@ -11,13 +11,13 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../src/main/store', () => ({
-  readTourney: vi.fn(() => ({ name: 'Mock Cup', game: '', dateTime: '', signupDeadline: '', draftStyle: 'random', minPlayers: 2, maxPlayers: 32 })),
+  readTourney: vi.fn(() => ({ name: 'Mock Cup', game: '', dateTime: '', signupDeadline: '', draftStyle: 'random', eliminationType: 'single', maps: [], rules: '', minPlayers: 2, maxPlayers: 32, teamNames: [], teamSize: 4, streamLink: '', enabledFields: {} })),
   saveTourney: vi.fn(),
   readSignups: vi.fn(() => []),
   saveSignups: vi.fn(),
   readDraft: vi.fn(() => ({ teams: [], pickOrder: [] })),
   saveDraft: vi.fn(),
-  readSync: vi.fn(() => ({ challongeLastPushed: null, challongeTournamentId: null, googleFormLastUpdated: null })),
+  readSync: vi.fn(() => ({ challongeLastPushed: null, challongeTournamentId: null, googleFormId: null, googleFormLastUpdated: null, tournamentStartedAt: null })),
   saveSync: vi.fn(),
   clearTournamentData: vi.fn(),
   readConfig: vi.fn(() => ({ challongeCommunityUrl: '', theme: 'green', backgroundImage: null })),
@@ -26,11 +26,26 @@ vi.mock('../../src/main/store', () => ({
 
 vi.mock('../../src/main/keychain', () => ({
   getCredential: vi.fn(() => 'mock-cred'),
-  saveCredential: vi.fn()
+  saveCredential: vi.fn(),
+  deleteCredential: vi.fn(),
+}))
+
+vi.mock('../../src/main/auth/oauth-config', () => ({
+  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_SECRET: '',
+  CHALLONGE_CLIENT_ID: '',
+  CHALLONGE_CLIENT_SECRET: '',
+  CHALLONGE_API_KEY: '',
 }))
 
 vi.mock('../../src/main/integrations/challonge', () => ({
-  pushToChallonge: vi.fn().mockResolvedValue(undefined)
+  pushToChallonge: vi.fn().mockResolvedValue(undefined),
+  startTournament: vi.fn().mockResolvedValue(undefined),
+  startTournamentV1: vi.fn().mockResolvedValue(undefined),
+  fetchMatches: vi.fn().mockResolvedValue({ matches: [], participants: [] }),
+  fetchMatchesV1: vi.fn().mockResolvedValue({ matches: [], participants: [] }),
+  updateMatch: vi.fn().mockResolvedValue(undefined),
+  updateMatchV1: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../src/main/integrations/google', () => ({
@@ -59,7 +74,7 @@ describe('get-tourney', () => {
 describe('save-tourney', () => {
   it('calls saveTourney with payload', async () => {
     const { saveTourney } = await import('../../src/main/store')
-    const payload = { name: 'New', game: 'Chess', dateTime: '', signupDeadline: '', draftStyle: 'random', minPlayers: 2, maxPlayers: 32 }
+    const payload = { name: 'New', game: 'Chess', dateTime: '', signupDeadline: '', draftStyle: 'random', eliminationType: 'single', maps: [], rules: '', minPlayers: 2, maxPlayers: 32, teamNames: [], teamSize: 4, streamLink: '', enabledFields: {} }
     await handlers['save-tourney'](null, payload)
     expect(saveTourney).toHaveBeenCalledWith(payload)
   })
@@ -120,5 +135,25 @@ describe('save-credential', () => {
     const { saveCredential } = await import('../../src/main/keychain')
     await handlers['save-credential'](null, 'challonge', 'api-key')
     expect(saveCredential).toHaveBeenCalledWith('challonge', 'api-key')
+  })
+})
+
+describe('get-matches / update-match credential expiry', () => {
+  const pushedSync = { challongeLastPushed: null, challongeTournamentId: 't-1', googleFormId: null, googleFormLastUpdated: null, tournamentStartedAt: null }
+
+  it('translates the expired sentinel from get-matches into a re-auth message', async () => {
+    const { readSync } = await import('../../src/main/store')
+    const { fetchMatches } = await import('../../src/main/integrations/challonge')
+    vi.mocked(readSync).mockReturnValueOnce(pushedSync)
+    vi.mocked(fetchMatches).mockRejectedValueOnce(new Error('CHALLONGE_CREDENTIAL_EXPIRED'))
+    await expect(handlers['get-matches'](null)).rejects.toThrow('re-authenticate in Settings')
+  })
+
+  it('translates the expired sentinel from update-match into a re-auth message', async () => {
+    const { readSync } = await import('../../src/main/store')
+    const { updateMatch } = await import('../../src/main/integrations/challonge')
+    vi.mocked(readSync).mockReturnValueOnce(pushedSync)
+    vi.mocked(updateMatch).mockRejectedValueOnce(new Error('CHALLONGE_CREDENTIAL_EXPIRED'))
+    await expect(handlers['update-match'](null, 'm-1', '2-1', 'w-1')).rejects.toThrow('re-authenticate in Settings')
   })
 })

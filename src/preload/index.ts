@@ -1,12 +1,19 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant, Appearance, ThemeId } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant, Appearance, ThemeId, Player, Balances, Pot } from '../shared/types'
 
 const api = {
   getTourney: (): Promise<Tourney> => ipcRenderer.invoke('get-tourney'),
   saveTourney: (config: Tourney): Promise<void> => ipcRenderer.invoke('save-tourney', config),
 
   getSignups: (): Promise<Signups> => ipcRenderer.invoke('get-signups'),
+  saveSignups: (signups: Player[]): Promise<void> => ipcRenderer.invoke('save-signups', signups),
   fetchSignups: (): Promise<Signups> => ipcRenderer.invoke('fetch-signups'),
+
+  getBalances: (): Promise<Balances> => ipcRenderer.invoke('get-balances'),
+  saveBalances: (balances: Balances): Promise<void> => ipcRenderer.invoke('save-balances', balances),
+
+  getPot: (): Promise<Pot> => ipcRenderer.invoke('get-pot'),
+  savePot: (pot: Pot): Promise<void> => ipcRenderer.invoke('save-pot', pot),
 
   getDraft: (): Promise<Draft> => ipcRenderer.invoke('get-draft'),
   saveDraft: (picks: DraftPick[]): Promise<void> => ipcRenderer.invoke('save-draft', picks),
