@@ -118,7 +118,9 @@ export function Draft({ onChanged }: DraftProps = {}): JSX.Element {
 
   function handleCategoryWinner(category: string, name: string): void {
     const filled = new Set(picks.filter(p => categoryOf[p.playerName] === category).map(p => p.teamName))
-    const nextTeam = teamNames.find(t => !filled.has(t))
+    const catIndex = categories.indexOf(category)
+    const orderedTeams = catIndex % 2 === 0 ? teamNames : [...teamNames].reverse()
+    const nextTeam = orderedTeams.find(t => !filled.has(t))
     if (!nextTeam) return
     setPicks(prev => [...prev, { playerName: name, teamName: nextTeam, pickNumber: prev.length + 1 }])
   }
