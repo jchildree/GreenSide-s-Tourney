@@ -5,7 +5,7 @@
                                            "hooks":  [
                                                          {
                                                              "type":  "command",
-                                                             "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-activate.js\"",
+                                                             "command":  "node \"C:\\Users\\jchildree\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-activate.js\"",
                                                              "timeout":  5000
                                                          }
                                                      ]
@@ -16,7 +16,7 @@
                                                "hooks":  [
                                                              {
                                                                  "type":  "command",
-                                                                 "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-mode-tracker.js\"",
+                                                                 "command":  "node \"C:\\Users\\jchildree\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\caveman-mode-tracker.js\"",
                                                                  "timeout":  5000
                                                              }
                                                          ]
@@ -28,7 +28,7 @@
                                           "hooks":  [
                                                         {
                                                             "type":  "command",
-                                                            "command":  "node \"C:\\Users\\GreenSide\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\check-encoding.js\""
+                                                            "command":  "node \"C:\\Users\\jchildree\\Documents\\Custom Game Tourney Application\\.claude\\hooks\\check-encoding.js\""
                                                         }
                                                     ]
                                       }
