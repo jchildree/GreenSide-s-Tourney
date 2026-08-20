@@ -28,12 +28,37 @@ export function computeTeamCount(playerCount: number, teamSize: number): number 
   return Math.max(1, Math.floor(playerCount / teamSize))
 }
 
+export function roundCount(teamCount: number, eliminationType: 'single' | 'double'): number {
+  const t = Math.max(1, Math.floor(teamCount))
+  const winners = Math.max(1, Math.ceil(Math.log2(t)))
+  // ponytail: double-elim round count approximated as winners rounds doubled minus the grand final; refine if exact loser-bracket rounds ever matter
+  return eliminationType === 'double' ? winners * 2 - 1 : winners
+}
+
 /**
  * Generate default team names: ["Team 1", "Team 2", ...]
  */
 export function autoNameTeams(count: number): string[] {
   const safeCount = Math.max(0, Math.floor(count))
   return Array.from({ length: safeCount }, (_, i) => `Team ${i + 1}`)
+}
+
+/**
+ * Category labels for a category draft: one per roster slot (team size 4 -> A, B, C, D).
+ */
+export function categoryLabels(teamSize: number): string[] {
+  const n = Math.min(26, Math.max(1, Math.floor(teamSize)))
+  return Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i))
+}
+
+/**
+ * Persistence (buildDraftFromPicks) drops teams that have no picks, so a reload
+ * can come back with fewer teams than the tournament needs. Re-add auto-named
+ * fillers up to the expected count without disturbing the teams that survived.
+ */
+export function reconcileTeamNames(savedNames: string[], expected: number): string[] {
+  const fillers = autoNameTeams(expected).filter(n => !savedNames.includes(n))
+  return [...savedNames, ...fillers].slice(0, Math.max(savedNames.length, expected))
 }
 
 /**
@@ -126,6 +151,26 @@ export function filterPlayersByName(players: Player[], query: string): Player[] 
   if (!query) return players
   const q = query.toLowerCase()
   return players.filter(p => p.name.toLowerCase().includes(q))
+}
+
+/**
+ * Rank players by admin-assigned seed (ascending; unseeded sort last, tie-break
+ * by submittedAt) and snake-assign them across teamCount auto-named teams.
+ * Returns Team[] in the same shape applyPicks produces.
+ */
+export function seededDistribute(players: Player[], teamCount: number): Team[] {
+  if (players.length === 0 || teamCount <= 0) return []
+
+  const ranked = [...players].sort((a, b) => {
+    const aHas = typeof a.seed === 'number'
+    const bHas = typeof b.seed === 'number'
+    if (aHas && bHas && a.seed !== b.seed) return a.seed! - b.seed!
+    if (aHas !== bHas) return aHas ? -1 : 1
+    return a.submittedAt.localeCompare(b.submittedAt)
+  })
+
+  const teams = autoNameTeams(teamCount)
+  return applyPicks(snakeAssign(ranked.map(p => p.name), teams))
 }
 
 export function buildSnakeQueue(teamNames: string[], totalPicks: number): string[] {

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant, Appearance, ThemeId } from '../shared/types'
+import type { Tourney, Signups, Draft, DraftPick, Sync, CredentialService, DraftSession, ChallongeMatch, ChallongeParticipant, Appearance, ThemeId, Player, Balances, Pot } from '../shared/types'
 
 declare global {
   interface Window {
@@ -7,7 +7,12 @@ declare global {
       getTourney: () => Promise<Tourney>
       saveTourney: (config: Tourney) => Promise<void>
       getSignups: () => Promise<Signups>
+      saveSignups: (signups: Player[]) => Promise<void>
       fetchSignups: () => Promise<Signups>
+      getBalances: () => Promise<Balances>
+      saveBalances: (balances: Balances) => Promise<void>
+      getPot: () => Promise<Pot>
+      savePot: (pot: Pot) => Promise<void>
       getDraft: () => Promise<Draft>
       saveDraft: (picks: DraftPick[]) => Promise<void>
       getSync: () => Promise<Sync>

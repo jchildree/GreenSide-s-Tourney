@@ -3,13 +3,21 @@ import type { Player } from '../../src/shared/types'
 import {
   computeTeamCount,
   autoNameTeams,
+  reconcileTeamNames,
+  categoryLabels,
   randomAssign,
   snakeAssign,
   applyPicks,
   unassignedPlayers,
   filterPlayersByName,
   buildSnakeQueue,
+  seededDistribute,
+  roundCount,
 } from '../../src/renderer/utils/draftModes'
+
+function seeded(name: string, seed: number, submittedAt = ''): Player {
+  return { name, discordHandle: '', submittedAt, seed }
+}
 
 // ---------------------------------------------------------------------------
 // computeTeamCount
@@ -37,6 +45,34 @@ describe('computeTeamCount', () => {
 
   it('returns exact count when evenly divisible', () => {
     expect(computeTeamCount(12, 4)).toBe(3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// reconcileTeamNames
+// ---------------------------------------------------------------------------
+describe('reconcileTeamNames', () => {
+  it('re-adds auto-named fillers for empty teams dropped on persist', () => {
+    expect(reconcileTeamNames(['Team 1'], 3)).toEqual(['Team 1', 'Team 2', 'Team 3'])
+  })
+
+  it('leaves surviving teams untouched when the count already matches', () => {
+    expect(reconcileTeamNames(['Alpha', 'Bravo', 'Team 3'], 3)).toEqual(['Alpha', 'Bravo', 'Team 3'])
+  })
+
+  it('keeps extra saved teams beyond the expected count', () => {
+    expect(reconcileTeamNames(['Team 1', 'Team 2', 'Team 3', 'Team 4'], 3))
+      .toEqual(['Team 1', 'Team 2', 'Team 3', 'Team 4'])
+  })
+})
+
+describe('categoryLabels', () => {
+  it('returns one letter label per roster slot', () => {
+    expect(categoryLabels(4)).toEqual(['A', 'B', 'C', 'D'])
+  })
+
+  it('guards a minimum of one category', () => {
+    expect(categoryLabels(0)).toEqual(['A'])
   })
 })
 
@@ -296,5 +332,80 @@ describe('buildSnakeQueue', () => {
 
   it('handles two teams across 4 picks', () => {
     expect(buildSnakeQueue(['A', 'B'], 4)).toEqual(['A', 'B', 'B', 'A'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// seededDistribute
+// ---------------------------------------------------------------------------
+describe('seededDistribute', () => {
+  it('returns empty array when players list is empty', () => {
+    expect(seededDistribute([], 2)).toEqual([])
+  })
+
+  it('returns empty array when teamCount is 0', () => {
+    expect(seededDistribute([seeded('A', 0)], 0)).toEqual([])
+  })
+
+  it('even split: 8 players / 2 teams via snake order', () => {
+    const players = Array.from({ length: 8 }, (_, i) => seeded(`P${i}`, i))
+    const teams = seededDistribute(players, 2)
+    expect(teams.map(t => t.name)).toEqual(['Team 1', 'Team 2'])
+    expect(teams[0].players).toEqual(['P0', 'P3', 'P4', 'P7'])
+    expect(teams[1].players).toEqual(['P1', 'P2', 'P5', 'P6'])
+  })
+
+  it('uneven split: 7 players / 2 teams leaves the extra on Team 1', () => {
+    const players = Array.from({ length: 7 }, (_, i) => seeded(`P${i}`, i))
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['P0', 'P3', 'P4'])
+    expect(teams[1].players).toEqual(['P1', 'P2', 'P5', 'P6'])
+  })
+
+  it('sorts ascending by seed regardless of input order', () => {
+    const players = [seeded('C', 2), seeded('A', 0), seeded('D', 3), seeded('B', 1)]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['A', 'D'])
+    expect(teams[1].players).toEqual(['B', 'C'])
+  })
+
+  it('players missing a seed sort last, tie-broken by submittedAt', () => {
+    const players: Player[] = [
+      { name: 'NoSeedLate', discordHandle: '', submittedAt: '2026-01-02' },
+      seeded('Seeded0', 0),
+      { name: 'NoSeedEarly', discordHandle: '', submittedAt: '2026-01-01' },
+      seeded('Seeded1', 1),
+    ]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['Seeded0', 'NoSeedLate'])
+    expect(teams[1].players).toEqual(['Seeded1', 'NoSeedEarly'])
+  })
+
+  it('is deterministic across repeated calls', () => {
+    const players = Array.from({ length: 6 }, (_, i) => seeded(`P${i}`, i))
+    const first = seededDistribute(players, 3)
+    const second = seededDistribute(players, 3)
+    expect(first).toEqual(second)
+  })
+
+  it('distributes duplicate player names by seed', () => {
+    const players = [seeded('Alex', 0), seeded('Alex', 1), seeded('Alex', 2), seeded('Alex', 3)]
+    const teams = seededDistribute(players, 2)
+    expect(teams[0].players).toEqual(['Alex', 'Alex'])
+    expect(teams[1].players).toEqual(['Alex', 'Alex'])
+  })
+})
+
+describe('roundCount', () => {
+  it('derives single-elimination rounds from team count', () => {
+    expect(roundCount(1, 'single')).toBe(1)
+    expect(roundCount(2, 'single')).toBe(1)
+    expect(roundCount(4, 'single')).toBe(2)
+    expect(roundCount(8, 'single')).toBe(3)
+  })
+
+  it('adds loser-bracket rounds for double elimination', () => {
+    expect(roundCount(4, 'double')).toBe(3)
+    expect(roundCount(8, 'double')).toBe(5)
   })
 })

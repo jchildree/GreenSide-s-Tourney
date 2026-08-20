@@ -73,3 +73,18 @@ Single-context layout — one `CONTEXT.md` + `docs/adr/` at project root. See `d
 
 - Before the first `git push` on a new repo, run `git ls-files` and check for large files; ensure node_modules, build artifacts, and binaries (>50MB) are gitignored.
 - When push fails with divergent/unrelated histories, ASK before force-pushing rather than assuming.
+
+## Character Constraints
+Never use non-ASCII characters (emojis, em-dashes, Unicode triangles/symbols) in source files or docs. A pre-commit hook blocks these. Use plain ASCII equivalents (e.g., '-' not em-dash, '->' not arrow).
+
+## Testing & Build Discipline
+After code changes, always run the build AND the test suite, and verify the actual output (do not treat exit 0 as a pass when a Docker/emulator/connection error may have occurred). Confirm tests are green before committing.
+
+## Git & Push Workflow
+Before attempting a push, verify a git remote is configured and the auth token is valid. Follow the safe-push checklist. Do not attempt to prune protected/ruleset-guarded branches; flag them for manual UI deletion instead.
+
+## PowerShell Commands
+Always emit complete PowerShell commands (include cmdlet name and required params like -Method). Resolve vault/file paths absolutely from the project root, never relative to CWD.
+
+## Auto-mode Restrictions
+Edits to settings.json and recursive deletes are hard-blocked by the auto-mode classifier; surface these to the user to run manually instead of retrying.

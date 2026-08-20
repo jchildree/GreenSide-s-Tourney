@@ -15,8 +15,15 @@ const fakeTourney: Tourney = {
   dateTime: '',
   signupDeadline: '',
   draftStyle: 'random',
+  eliminationType: 'single',
+  maps: [],
+  rules: '',
   minPlayers: 2,
   maxPlayers: 32,
+  teamNames: [],
+  teamSize: 4,
+  streamLink: '',
+  enabledFields: {},
 }
 
 describe('updateGoogleForm', () => {
@@ -39,6 +46,15 @@ describe('updateGoogleForm', () => {
     await expect(
       updateGoogleForm({ refreshToken: 'tok', formId: 'form-abc', tourney: fakeTourney })
     ).rejects.toThrow('Google Forms update failed (400)')
+  })
+
+  it('propagates the credential-expired sentinel from token refresh', async () => {
+    const { refreshAccessToken } = await import('../../../src/main/integrations/token-refresh')
+    vi.mocked(refreshAccessToken).mockRejectedValueOnce(new Error('GOOGLE_CREDENTIAL_EXPIRED'))
+    await expect(
+      updateGoogleForm({ refreshToken: 'tok', formId: 'form-abc', tourney: fakeTourney })
+    ).rejects.toThrow('GOOGLE_CREDENTIAL_EXPIRED')
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })
 

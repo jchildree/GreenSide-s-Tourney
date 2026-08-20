@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Tourney } from '../../shared/types'
 import { DEFAULT_TOURNEY } from '../../shared/types'
+import { computeTeamCount, roundCount } from '../utils/draftModes'
 
 type FieldKey = 'name' | 'game' | 'dateTime' | 'signupDeadline' | 'draftStyle' | 'minPlayers' | 'maxPlayers' | 'teamSize'
 type ScalarFieldKey = 'name' | 'game' | 'dateTime' | 'signupDeadline' | 'minPlayers' | 'maxPlayers'
@@ -27,6 +28,22 @@ const LABEL: CSSProperties = {
   fontWeight: 600,
   color: 'var(--color-silver)',
 }
+
+const GHOST_BUTTON: CSSProperties = {
+  padding: '0.5rem 0.9rem',
+  borderRadius: '0.55rem',
+  fontSize: '0.9rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
+const ELIMINATION_TYPES: { id: Tourney['eliminationType']; label: string }[] = [
+  { id: 'single', label: 'Single elimination' },
+  { id: 'double', label: 'Double elimination' },
+]
 
 const DRAFT_STYLES: { id: Tourney['draftStyle']; label: string; desc: string }[] = [
   { id: 'random', label: 'Random wheel', desc: 'Spin a wheel — every pick is a surprise' },
@@ -75,13 +92,81 @@ interface SetupProps {
   onSaved?: () => void
 }
 
+interface MapRow {
+  id: number
+  value: string
+}
+
+type RoundRows = MapRow[]
+
+let nextMapId = 0
+
+function toMapRows(maps: string[]): MapRow[] {
+  return maps.map(value => ({ id: nextMapId++, value }))
+}
+
+function emptyRound(): RoundRows {
+  return [{ id: nextMapId++, value: '' }]
+}
+
+/** Build editor state for `rounds` rounds, seeding from existing maps. */
+function reconcileRounds(maps: string[][], rounds: number): RoundRows[] {
+  return Array.from({ length: Math.max(1, rounds) }, (_, i) => {
+    const round = maps[i]
+    if (round && round.length) return toMapRows(round)
+    return emptyRound()
+  })
+}
+
+function roundLabel(i: number, rounds: number): string {
+  if (i === rounds - 1) return 'Final'
+  if (i === rounds - 2) return 'Semifinal'
+  return `Round ${i + 1}`
+}
+
 export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
   const [tourney, setTourney] = useState<Tourney>(DEFAULT_TOURNEY)
+  const teamCount = computeTeamCount(tourney.maxPlayers, tourney.teamSize)
+  const rounds = roundCount(teamCount, tourney.eliminationType)
+  const [editor, setEditor] = useState<RoundRows[]>(() =>
+    reconcileRounds(DEFAULT_TOURNEY.maps ?? [], roundCount(
+      computeTeamCount(DEFAULT_TOURNEY.maxPlayers, DEFAULT_TOURNEY.teamSize),
+      DEFAULT_TOURNEY.eliminationType,
+    )),
+  )
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    void window.api.getTourney().then(data => setTourney(t => ({ ...t, ...data })))
+    void window.api.getTourney().then(data => {
+      setTourney(t => ({ ...t, ...data }))
+      const loadedRounds = roundCount(
+        computeTeamCount(data.maxPlayers, data.teamSize),
+        data.eliminationType,
+      )
+      setEditor(reconcileRounds(data.maps ?? [], loadedRounds))
+    })
   }, [])
+
+  useEffect(() => {
+    setEditor(prev => {
+      if (prev.length === rounds) return prev
+      const next: RoundRows[] = Array.from({ length: rounds }, (_, i) =>
+        prev[i] ?? emptyRound(),
+      )
+      setTourney(t => ({ ...t, maps: next.map(round => round.map(r => r.value)) }))
+      return next
+    })
+  }, [rounds])
+
+  function updateEditor(next: RoundRows[]): void {
+    setEditor(next)
+    setTourney(t => ({ ...t, maps: next.map(round => round.map(r => r.value)) }))
+    setSaved(false)
+  }
+
+  function updateRound(roundIndex: number, rows: MapRow[]): void {
+    updateEditor(editor.map((round, i) => (i === roundIndex ? rows : round)))
+  }
 
   function isEnabled(key: FieldKey): boolean {
     return tourney.enabledFields?.[key] !== false
@@ -219,6 +304,100 @@ export function Setup({ onSaved }: SetupProps = {}): JSX.Element {
             ))}
             {field('Min players', 'minPlayers', d => textInput('minPlayers', 'number', d))}
             {field('Max players', 'maxPlayers', d => textInput('maxPlayers', 'number', d))}
+          </div>
+        </div>
+
+        <div style={CARD}>
+          <p style={EYEBROW}>Format &amp; rules</p>
+          <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.9rem', color: 'var(--color-muted)' }}>
+            Pushed to your Challonge bracket.
+          </p>
+
+          <span style={{ ...LABEL, display: 'block', marginBottom: '0.625rem' }}>Bracket format</span>
+          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', marginBottom: '1.125rem' }}>
+            {ELIMINATION_TYPES.map(el => {
+              const active = tourney.eliminationType === el.id
+              return (
+                <button
+                  key={el.id}
+                  type="button"
+                  onClick={() => { setTourney(t => ({ ...t, eliminationType: el.id })); setSaved(false) }}
+                  style={{
+                    flex: 1,
+                    minWidth: '11rem',
+                    textAlign: 'left',
+                    padding: '0.875rem 1rem',
+                    borderRadius: '0.7rem',
+                    cursor: 'pointer',
+                    background: 'var(--color-surface)',
+                    border: '2px solid',
+                    borderColor: active ? 'var(--color-primary)' : 'var(--color-border)',
+                    color: 'var(--color-text)',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {el.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <span style={{ ...LABEL, display: 'block', marginBottom: '0.625rem' }}>Maps per round</span>
+          {editor.map((round, ri) => {
+            const lockLast = round.length <= 1
+            return (
+              <div key={ri} style={{ marginBottom: '1.125rem' }}>
+                <span style={{ ...LABEL, display: 'block', marginBottom: '0.5rem', color: 'var(--color-primary)' }}>
+                  {roundLabel(ri, rounds)}
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  {round.map((row, i) => (
+                    <div key={row.id} style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={row.value}
+                        onChange={e => {
+                          const value = e.target.value
+                          updateEditor(editor.map((r, j) => (j === ri ? r.map(m => (m.id === row.id ? { ...m, value } : m)) : r)))
+                        }}
+                        className="form-input"
+                        placeholder="Map name"
+                        style={{ flex: 1, minHeight: '2.6rem', fontSize: '1rem' }}
+                      />
+                      <button
+                        type="button"
+                        disabled={lockLast}
+                        onClick={() => updateEditor(editor.map((r, j) => (j === ri ? r.filter(m => m.id !== row.id) : r)))}
+                        style={{ ...GHOST_BUTTON, opacity: lockLast ? 0.4 : 1, cursor: lockLast ? 'not-allowed' : 'pointer' }}
+                        aria-label={`Remove map ${i + 1} from ${roundLabel(ri, rounds)}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateEditor(editor.map((r, j) => (j === ri ? [...r, { id: nextMapId++, value: '' }] : r)))}
+                  style={GHOST_BUTTON}
+                >
+                  Add map
+                </button>
+              </div>
+            )
+          })}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <span style={LABEL}>Rules</span>
+            <textarea
+              value={tourney.rules ?? ''}
+              onChange={e => { setTourney(t => ({ ...t, rules: e.target.value })); setSaved(false) }}
+              className="form-input"
+              rows={5}
+              placeholder="Match rules, scoring, tie-breakers..."
+              style={{ width: '100%', fontSize: '1rem', resize: 'vertical' }}
+            />
           </div>
         </div>
 
